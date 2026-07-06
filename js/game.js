@@ -215,12 +215,23 @@ function trySnap(b, tol){
     if(Math.abs(ty-b.position.y) > tol || Math.abs(tx-b.position.x) > p.w/2+GRID*0.8) continue;
     if(fits(b, tx, ty, p.w, bh)){ const d = Math.abs(tx-b.position.x); if(d<bestD){ bestD=d; cx=tx; ny=ty; ok=true; } }
   }
-  // Se nenhuma vaga próxima couber → força na vaga mais próxima IMEDIATAMENTE
+  // Se nenhuma vaga próxima couber → procura em todas as colunas
   if(!ok){
-    const nf = nearestFit(b.plugin.tier, b.position.x, b, GRID*4);
-    cx = nf ? nf.cx : gridX(b.plugin.tier, b.position.x);
-    ny = nf ? nf.ny : (columnTop(cx, p.w, b) - bh/2);
+    const nf = nearestFit(b.plugin.tier, b.position.x, b, null); // busca SEM limite de distância
+    if(nf){
+      cx = nf.cx; ny = nf.ny;
+    } else {
+      // Empilha na coluna atual, subindo até não colidir
+      cx = gridX(b.plugin.tier, b.position.x);
+      ny = columnTop(cx, p.w, b) - bh/2;
+      let safety = 0;
+      while(!fits(b, cx, ny, p.w, bh) && safety < 20){
+        ny -= bh; safety++;  // sobe uma altura de peça a cada tentativa
+      }
+    }
   }
+  // Arredonda p/ evitar imprecisão de floating point no encaixe
+  cx = Math.round(cx); ny = Math.round(ny);
   const quiet = b.plugin.unsnapAt && performance.now()-b.plugin.unsnapAt < 900 &&
                 Math.abs(cx-b.plugin.prevX) < 5 && Math.abs(ny-b.plugin.prevY) < 8;
   Body.setPosition(b, {x:cx, y:ny});
@@ -281,6 +292,57 @@ function compact(){
     }
   }
 }
+/* ---------- Corretor de sobreposição ---------- */
+// Corrige peças sobrepostas (após shake, quedas múltiplas, etc).
+// Age em snapped E unsnapped — qualquer overlap é resolvido.
+function resolveOverlaps(){
+  let anyFixed = true;
+  for(let pass = 0; pass < 5 && anyFixed; pass++){
+    anyFixed = false;
+    for(const b of pieces){
+      if(b.plugin.dead) continue;
+      const bh = PIECES[b.plugin.tier].h - STUD;
+      for(const o of pieces){
+        if(o===b || o.plugin.dead) continue;
+        // Pelo menos uma precisa estar snapped p/ servir de âncora
+        if(!b.plugin.snapped && !o.plugin.snapped) continue;
+        const xOv = xOverlap(b.bounds.min.x, b.bounds.max.x, o.bounds.min.x, o.bounds.max.x);
+        if(xOv <= 1) continue;
+        const yOv = Math.min(b.bounds.max.y, o.bounds.max.y) - Math.max(b.bounds.min.y, o.bounds.min.y);
+        if(yOv <= 1) continue;
+
+        // A peça com bounds.min.y MAIOR (mais abaixo na tela) é a "de baixo"
+        // A outra sobe para cima dela
+        const topPiece  = b.bounds.min.y < o.bounds.min.y ? b : o;  // mais alta
+        const basePiece = topPiece === b ? o : b;                    // mais baixa (âncora)
+        const baseBh = PIECES[basePiece.plugin.tier].h - STUD;
+
+        // Se a peça-âncora está snapped, move a outra para cima dela
+        if(basePiece.plugin.snapped){
+          const newY = basePiece.bounds.min.y - bh/2;
+          if(newY < topPiece.position.y){  // sobe
+            Body.setPosition(topPiece, {x:topPiece.position.x, y:newY});
+            if(!topPiece.plugin.snapped){
+              Body.setVelocity(topPiece, {x:0, y:0});
+              Body.setAngle(topPiece, 0);
+              Body.setAngularVelocity(topPiece, 0);
+            }
+            anyFixed = true;
+          }
+        } else if(topPiece.plugin.snapped){
+          // Âncora é a de cima (snapped) — empurra a de baixo p/ baixo
+          const newY = topPiece.bounds.max.y + baseBh/2;
+          if(newY > basePiece.position.y){
+            Body.setPosition(basePiece, {x:basePiece.position.x, y:newY});
+            Body.setVelocity(basePiece, {x:0, y:2});
+            anyFixed = true;
+          }
+        }
+      }
+    }
+  }
+}
+
 function unstick(dt){
   for(const b of pieces){
     if(b.plugin.snapped || b.plugin.dead) continue;
@@ -853,6 +915,7 @@ function frame(now){
     processMerges();
     compact();
     unstick(dt);
+    resolveOverlaps();    // corrige peças sobrepostas (shake, quedas múltiplas)
 
     if(!cur && now>=nextAt) newCurrent();
     warn = dangerCheck(dt);
