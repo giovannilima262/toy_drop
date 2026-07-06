@@ -5,8 +5,8 @@
 
 const BASE_W = 1024, BASE_H = 1536;   // proporção do cenário (2:3), letterbox
 const W = 480, H = 828;               // resolução lógica da área de jogo (casa com o painel 0.579)
-const INNER_L = 16, INNER_W = 448, INNER_R = INNER_L + INNER_W;  // 28 pinos
-const FLOOR_Y = 740;
+const INNER_L = 0, INNER_W = 480, INNER_R = INNER_L + INNER_W;  // sem margem lateral — peças encostam nas bordas
+const FLOOR_Y = 818;                  // chão quase colado no fundo do painel
 const DANGER_Y = 210, SPAWN_Y = 150;
 const STUD = 8;               // altura real do pino nos sprites
 const GRID = 32;              // passo real do pino (t1 = 1 pino de 32px)
@@ -807,7 +807,16 @@ function drawPiece(b, now){
 function drawScene(warn, now){
   ctx.clearRect(0,0,W,H);
   ctx.save();
-  ctx.beginPath(); ctx.roundRect(1,1,W-2,H-2,30); ctx.clip();   // recorta no formato do painel
+  const cr = 30;   // raio só nos cantos superiores — base reta
+ctx.beginPath();
+ctx.moveTo(0, H);
+ctx.lineTo(0, cr);
+ctx.arcTo(0, 0, cr, 0, cr);
+ctx.lineTo(W - cr, 0);
+ctx.arcTo(W, 0, W, cr, cr);
+ctx.lineTo(W, H);
+ctx.closePath();
+ctx.clip();
 
   const dx = (Math.random()-.5)*2*camShake, dy = (Math.random()-.5)*2*camShake;
   ctx.save();
