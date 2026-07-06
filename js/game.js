@@ -292,54 +292,51 @@ function compact(){
     }
   }
 }
-/* ---------- Corretor de sobreposição ---------- */
-// Corrige peças sobrepostas (após shake, quedas múltiplas, etc).
-// Age em snapped E unsnapped — qualquer overlap é resolvido.
-function resolveOverlaps(){
-  let anyFixed = true;
-  for(let pass = 0; pass < 5 && anyFixed; pass++){
-    anyFixed = false;
-    for(const b of pieces){
-      if(b.plugin.dead) continue;
-      const bh = PIECES[b.plugin.tier].h - STUD;
-      for(const o of pieces){
-        if(o===b || o.plugin.dead) continue;
-        // Pelo menos uma precisa estar snapped p/ servir de âncora
-        if(!b.plugin.snapped && !o.plugin.snapped) continue;
-        const xOv = xOverlap(b.bounds.min.x, b.bounds.max.x, o.bounds.min.x, o.bounds.max.x);
-        if(xOv <= 1) continue;
-        const yOv = Math.min(b.bounds.max.y, o.bounds.max.y) - Math.max(b.bounds.min.y, o.bounds.min.y);
-        if(yOv <= 1) continue;
+/* ---------- Corretor de sobreposição (JUICE) ---------- */
+// Só corre após shake ou quando há peças recém-assentadas.
+// Cooldown de 300ms entre correções p/ evitar tremores.
+let lastResolveAt = 0;
+function resolveOverlaps(now){
+  if(now - lastResolveAt < 300) return;  // cooldown: não corrige todo frame
 
-        // A peça com bounds.min.y MAIOR (mais abaixo na tela) é a "de baixo"
-        // A outra sobe para cima dela
-        const topPiece  = b.bounds.min.y < o.bounds.min.y ? b : o;  // mais alta
-        const basePiece = topPiece === b ? o : b;                    // mais baixa (âncora)
-        const baseBh = PIECES[basePiece.plugin.tier].h - STUD;
+  let anyFixed = false;
+  for(const b of pieces){
+    if(b.plugin.dead) continue;
+    const bh = PIECES[b.plugin.tier].h - STUD;
+    for(const o of pieces){
+      if(o===b || o.plugin.dead) continue;
+      if(!b.plugin.snapped && !o.plugin.snapped) continue; // precisa de âncora
+      const xOv = xOverlap(b.bounds.min.x, b.bounds.max.x, o.bounds.min.x, o.bounds.max.x);
+      if(xOv <= 2) continue;
+      const yOv = Math.min(b.bounds.max.y, o.bounds.max.y) - Math.max(b.bounds.min.y, o.bounds.min.y);
+      if(yOv <= 2) continue;
 
-        // Se a peça-âncora está snapped, move a outra para cima dela
-        if(basePiece.plugin.snapped){
-          const newY = basePiece.bounds.min.y - bh/2;
-          if(newY < topPiece.position.y){  // sobe
-            Body.setPosition(topPiece, {x:topPiece.position.x, y:newY});
-            if(!topPiece.plugin.snapped){
-              Body.setVelocity(topPiece, {x:0, y:0});
-              Body.setAngle(topPiece, 0);
-              Body.setAngularVelocity(topPiece, 0);
-            }
-            anyFixed = true;
+      const topPiece  = b.bounds.min.y < o.bounds.min.y ? b : o;
+      const basePiece = topPiece === b ? o : b;
+      const baseBh = PIECES[basePiece.plugin.tier].h - STUD;
+
+      if(basePiece.plugin.snapped){
+        const newY = basePiece.bounds.min.y - bh/2;
+        if(newY < topPiece.position.y - 1){
+          // Em vez de teleportar, dá um empurrãozinho + animação
+          Body.setVelocity(topPiece, {x:0, y:-6});
+          Body.setPosition(topPiece, {x:topPiece.position.x, y:newY});
+          if(!topPiece.plugin.snapped){
+            Body.setAngle(topPiece, 0);
+            Body.setAngularVelocity(topPiece, 0);
           }
-        } else if(topPiece.plugin.snapped){
-          // Âncora é a de cima (snapped) — empurra a de baixo p/ baixo
-          const newY = topPiece.bounds.max.y + baseBh/2;
-          if(newY > basePiece.position.y){
-            Body.setPosition(basePiece, {x:basePiece.position.x, y:newY});
-            Body.setVelocity(basePiece, {x:0, y:2});
-            anyFixed = true;
-          }
+          // Juice: mini partículas e som
+          burst(topPiece.position.x, topPiece.position.y, '#AAD4AA', 4);
+          anyFixed = true;
+          break; // uma correção por peça por passagem
         }
       }
     }
+  }
+
+  if(anyFixed){
+    lastResolveAt = now;
+    sClick();  // som de encaixe
   }
 }
 
@@ -910,10 +907,21 @@ function frame(now){
         b.plugin.restT = 0;
       }
     }
+    // Corrige peças que afundaram abaixo do chão (tunneling da física)
+    for(const b of pieces){
+      if(b.plugin.dead || b.plugin.snapped) continue;
+      const bh = PIECES[b.plugin.tier].h - STUD;
+      if(b.position.y + bh/2 > FLOOR_Y + 4){
+        Body.setPosition(b, {x:b.position.x, y:FLOOR_Y - bh/2});
+        Body.setVelocity(b, {x:0, y:0});
+        trySnap(b);
+      }
+    }
+
     processMerges();
     compact();
     unstick(dt);
-    resolveOverlaps();    // corrige peças sobrepostas (shake, quedas múltiplas)
+    resolveOverlaps(now);    // corrige peças sobrepostas (c/ cooldown e juice)
 
     if(!cur && now>=nextAt) newCurrent();
     warn = dangerCheck(dt);
