@@ -1,7 +1,7 @@
 'use strict';
 /* Toy Drop — merge-física (estilo Suika) com Kenney Toy Brick Pack.
    Layout: cenário background.png; jogo encaixado no painel azul; HUD do mockup
-   (barra superior, PRÓXIMA/HOLD à esquerda, OBJETIVO à direita, bandeja de coleção). */
+   (barra superior, próximas peças no topo do painel, contador de peças marcadas embaixo). */
 
 const BASE_W = 1024, BASE_H = 1536;   // proporção do cenário (2:3), letterbox
 const W = 480, H = 828;               // resolução lógica da área de jogo (casa com o painel 0.579)
@@ -25,15 +25,6 @@ const PIECES = [null,
   { img:'t7', w:192, h:64, color:'#FFB733', pts:80 }
 ];
 const CONFETTI = ['#FF5859','#FFCC2F','#1695ED','#56C46D','#ECECEC','#FFB733'];
-
-const OBJ_DEFS = [
-  { label:'faça o bloco verde',  icon:4, kind:'tier',   tier:4, target:1 },
-  { label:'funda 12 blocos',     icon:3, kind:'merges',         target:12 },
-  { label:'faça o bloco branco', icon:5, kind:'tier',   tier:5, target:1 },
-  { label:'faça um combo ×3',    icon:2, kind:'combo',          target:3 },
-  { label:'faça o bloco preto',  icon:6, kind:'tier',   tier:6, target:1 },
-  { label:'faça o dourado!',     icon:7, kind:'tier',   tier:7, target:1 }
-];
 
 /* ---------- Pontos de integração CrazyGames ---------- */
 const SDK = {
@@ -110,7 +101,7 @@ let score = 0, best = +(localStorage.getItem('toydrop_best')||0);
 let gems = +(localStorage.getItem('toydrop_gems')||0);
 let combo = 0, lastMergeAt = -9e9;
 let discovered = [true,true,false,false,false,false,false,false];
-let objIdx = 0, objProg = 0;
+let goalTotal = 0, goalLeft = 0, goalDone = false;   // objetivo: mesclar todas as peças marcadas do castelo
 let dangerT = 0, usedShake = false;
 let particles = [], popups = [], chars = [], rings = [], fxConf = [];
 let pendingMerges = [];
@@ -483,7 +474,7 @@ function doMerge(a,b){
     const nb = spawnBody(nt, nx, ny, true);
     Body.setVelocity(nb, {x:0, y:-1.5});
     popRoom(nb);
-    discovered[nt] = true; syncTray();
+    discovered[nt] = true;
     addScore(Math.round(PIECES[nt].pts*mult), mx, my);
     burst(mx, my, PIECES[nt].color, 16);
     camShake = Math.max(camShake, 3);
@@ -494,9 +485,7 @@ function doMerge(a,b){
     popups.push({x:mx, y:my-52, text:'COMBO ×'+combo, kind:'combo', life:1.15,
       size:24+Math.min(combo,5)*2.5, color:cc[Math.min(combo-2,4)], t0:now});
   }
-  objBump('merges', 1);
-  objBump('combo', combo);
-  objBump('tier', t===MAX_TIER ? MAX_TIER : t+1);
+  checkGoal();
   supportCascade();
 }
 function processMerges(){
@@ -540,7 +529,7 @@ function celebrate(x,y){
   const c = 'char_'+'abcde'[(Math.random()*5)|0];
   chars.push({img:c, x, y:y-20, vx:(Math.random()-.5)*6, vy:-22, rot:0, vr:(Math.random()-.5)*.3, y0:y, bounces:0, squashT:0});
   for(let i=0;i<100;i++) burstFx(x+(Math.random()-.5)*120, y+(Math.random()-.5)*50, CONFETTI[i%6], 1);
-  discovered[MAX_TIER] = true; syncTray();
+  discovered[MAX_TIER] = true;
   gems += 50; localStorage.setItem('toydrop_gems', gems); syncScore();
   camShake = Math.max(camShake, 8);
   targetTS = .42;
@@ -549,55 +538,64 @@ function celebrate(x,y){
   SDK.happytime();
 }
 
-/* ---------- Objetivos ---------- */
-function objBump(kind, val){
-  const d = OBJ_DEFS[objIdx];
-  if(d.kind !== kind) return;
-  if(kind==='merges') objProg++;
-  else if(kind==='combo'){ if(val>=d.target) objProg = d.target; }
-  else if(kind==='tier'){ if(val>=d.tier) objProg = d.target; }
-  if(objProg >= d.target) objComplete();
-  syncObj();
+/* ---------- Objetivo: mesclar todas as peças marcadas do castelo ---------- */
+function countMarked(){ let n = 0; for(const b of pieces) if(b.plugin.initial && !b.plugin.dead) n++; return n; }
+function resetGoal(){ goalTotal = countMarked(); goalLeft = goalTotal; goalDone = false; buildGoalTray(); }
+function checkGoal(){
+  if(goalDone) return;
+  const left = countMarked();
+  if(left !== goalLeft){ goalLeft = left; syncGoal(); }
+  if(goalLeft === 0 && goalTotal > 0){
+    goalDone = true;
+    gems += 50; localStorage.setItem('toydrop_gems', gems); syncScore();
+    popups.push({x:W/2, y:DANGER_Y+70, text:'TABULEIRO LIMPO!', kind:'info', life:1.4, size:28, color:'#7BE07B', t0:performance.now()});
+    for(let i=0;i<80;i++) burstFx(W/2+(Math.random()-.5)*260, DANGER_Y+140, CONFETTI[i%6], 1);
+    sGoal();
+    setTimeout(()=>{ if(state!=='over') nextBoard(); }, 1200);
+  }
 }
-function objComplete(){
-  gems += 25; localStorage.setItem('toydrop_gems', gems); syncScore();
-  popups.push({x:W/2, y:DANGER_Y+70, text:'OBJETIVO!', kind:'info', life:1.2, size:26, color:'#7BE07B', t0:performance.now()});
-  objIdx = (objIdx+1) % OBJ_DEFS.length;
-  objProg = 0;
-  sGoal();
+function nextBoard(){   // novo castelo de peças marcadas — score e gemas ficam
+  for(const b of [...pieces]) removeBody(b);
+  pendingMerges = [];
+  setupInitialBoard();
+  resetGoal();
 }
 
 /* ---------- HUD ---------- */
 const $ = id=>document.getElementById(id);
 function imgSrc(t){ return 'assets/'+PIECES[t].img+'.png'; }
 function syncScore(){ $('score').textContent = score.toLocaleString('pt-BR'); $('gems').textContent = gems.toLocaleString('pt-BR'); }
-function syncPreview(){ $('nx0').src = imgSrc(queue[0]); $('nx1').src = queue[1]?imgSrc(queue[1]):''; }
-function syncHold(){
-  const card = $('holdCard');
-  if(stash){ card.classList.remove('empty'); $('holdImg').src = imgSrc(stash); $('holdImg').style.display=''; }
-  else { card.classList.add('empty'); $('holdImg').style.display='none'; }
+function markedByTier(){
+  const per = [0,0,0,0,0,0,0,0];
+  for(const b of pieces) if(b.plugin.initial && !b.plugin.dead) per[b.plugin.tier]++;
+  return per;
 }
-function syncObj(){
-  const d = OBJ_DEFS[objIdx];
-  $('objIco').src = imgSrc(d.icon);
-  $('objN').textContent = objProg;
-  $('objT').textContent = d.target;
-}
-let trayImgs = [];
-function buildTray(){
+let goalSlots = [];   // barra inferior: sprite da peça + badge com quantas marcadas faltam daquele tipo
+function buildGoalTray(){
   const tray = $('tray'); tray.innerHTML = '';
-  trayImgs = PIECES.slice(1).map((p,i)=>{
-    const im = document.createElement('img');
-    im.src = imgSrc(i+1);
-    tray.appendChild(im);
-    return im;
-  });
+  goalSlots = [];
+  const per = markedByTier();
+  for(let t=1; t<=MAX_TIER; t++){
+    if(!per[t]) continue;
+    const slot = document.createElement('div'); slot.className = 'gslot';
+    const im = document.createElement('img'); im.src = imgSrc(t);
+    const bd = document.createElement('b'); bd.textContent = per[t];
+    slot.appendChild(im); slot.appendChild(bd); tray.appendChild(slot);
+    goalSlots.push({tier:t, slot, bd});
+  }
 }
-function syncTray(){ trayImgs.forEach((im,i)=>{ im.style.opacity = discovered[i+1] ? 1 : .28; }); }
+function syncGoal(){
+  const per = markedByTier();
+  for(const s of goalSlots){
+    const n = per[s.tier];
+    s.bd.textContent = n>0 ? n : '✓';
+    s.slot.classList.toggle('done', n===0);
+  }
+}
 
 /* ---------- Fila / HOLD ---------- */
 function refillQueue(){ while(queue.length < 3) queue.push(randTier()); }
-function takeNext(){ const t = queue.shift(); refillQueue(); syncPreview(); return t; }
+function takeNext(){ const t = queue.shift(); refillQueue(); return t; }   // fila é desenhada no topo do painel (drawScene)
 function newCurrent(){
   cur = takeNext();
   holdUsed = false;
@@ -611,7 +609,7 @@ function doHold(){
   holdUsed = true;
   heldX = gridX(cur, heldDrawX);
   heldSince = performance.now();
-  syncHold();
+  sHold();
 }
 
 /* ---------- Input ---------- */
@@ -697,7 +695,7 @@ function settings(){
   if(state!=='play' && state!=='paused') return;
   const wasPlay = state==='play'; if(wasPlay) state='paused';
   showOverlay('<h1>ajustes</h1>'+
-    '<p>arraste para mirar · solte para largar<br>toque em HOLD para guardar a peça</p>'+
+    '<p>arraste para mirar · solte para largar<br>mescle todas as peças marcadas ⚪</p>'+
     '<div class="row"><button class="btn alt" id="muteBtn">'+(muted?'🔇 som off':'🔊 som on')+'</button>'+
     '<button class="btn" id="resumeBtn2">voltar</button></div>'+
     '<button class="btn alt" id="restartBtn" style="margin-top:var(--u)">reiniciar</button>');
@@ -712,22 +710,22 @@ function restart(){
   for(const b of [...pieces]) removeBody(b);
   particles=[]; popups=[]; chars=[]; rings=[]; fxConf=[]; pendingMerges=[];
   score=0; combo=0; drops=0; dangerT=0; usedShake=false; camShake=0; targetTS=1; timeScale=1; gameClock=0;
-  objIdx=0; objProg=0; stash=null; holdUsed=false;
+  stash=null; holdUsed=false;
   discovered = [true,true,false,false,false,false,false,false];
   queue = []; refillQueue(); newCurrent();
   heldDrawX = heldX;
-  syncScore(); syncPreview(); syncHold(); syncObj(); syncTray();
+  syncScore();
   setupInitialBoard();
+  resetGoal();
   hideOverlay(); state = 'play'; SDK.gameplayStart();
 }
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden) pause(); });
 
 document.addEventListener('pointerdown', e=>{   // clique em qualquer botão do layout
-  if(e.target.closest('button, #holdCard')){ audioInit(); sfx(aBtn); }
+  if(e.target.closest('button')){ audioInit(); sfx(aBtn); }
 }, true);
 $('gearBtn').addEventListener('click', settings);
 $('pauseBtn').addEventListener('click', ()=>{ if(state==='paused') resume(); else pause(); });
-$('holdCard').addEventListener('click', doHold);
 $('gemPlus').addEventListener('click', ()=>{
   popups.push({x:W/2, y:DANGER_Y+40, text:'loja em breve', kind:'info', life:1, size:20, color:'#FFFFFF', t0:performance.now()});
 });
@@ -885,6 +883,28 @@ ctx.clip();
     ctx.fillText('arraste e solte', W/2, 300+Math.sin(now/300)*4);
     ctx.font = '600 15px -apple-system, sans-serif';
     ctx.fillText('junte blocos iguais!', W/2, 326+Math.sin(now/300)*4);
+  }
+
+  // Próximas peças da fila — pílula no topo do painel
+  if(queue.length && state==='play'){
+    ctx.save();
+    ctx.globalAlpha = .92;
+    ctx.fillStyle = 'rgba(23,74,138,.55)';
+    ctx.beginPath(); ctx.roundRect(W/2-88, 22, 176, 64, 16); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'center';
+    ctx.font = '400 12px "Lilita One", sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,.85)';
+    ctx.fillText('PRÓXIMAS', W/2, 38);
+    [queue[0], queue[1]].forEach((t,i)=>{
+      if(!t) return;
+      const p = PIECES[t];
+      const s = Math.min(30/p.h, 62/p.w, 1.1);   // altura uniforme na pílula, peças largas encolhem
+      ctx.globalAlpha = i===0 ? 1 : .55;
+      ctx.drawImage(IMGS[p.img], W/2 + (i===0?-40:40) - p.w*s/2, 66 - p.h*s/2, p.w*s, p.h*s);
+    });
+    ctx.globalAlpha = 1;
+    ctx.restore();
   }
   ctx.restore();
   ctx.restore();
@@ -1117,7 +1137,7 @@ window.addEventListener('resize', fit);
 window.TD = {
   drop:(t,x,y)=>{ const b=spawnBody(t, x??W/2, y??SPAWN_Y); b.plugin.guided = gridX(t, x??W/2); b.isSensor = true; return b; },
   hold:doHold,
-  state:()=>({state, score, best, gems, combo, charsN:chars.length, fxN:fxConf.length, char:chars[0]&&{y:Math.round(chars[0].y), vy:+chars[0].vy.toFixed(1), b:chars[0].bounces}, obj:OBJ_DEFS[objIdx].label, objProg, cur, stash, queue:[...queue],
+  state:()=>({state, score, best, gems, combo, charsN:chars.length, fxN:fxConf.length, char:chars[0]&&{y:Math.round(chars[0].y), vy:+chars[0].vy.toFixed(1), b:chars[0].bounces}, goalLeft, goalTotal, cur, stash, queue:[...queue],
     dangerT:Math.round(dangerT), pieces:pieces.length, snapped:pieces.filter(b=>b.plugin.snapped).length,
     pos:pieces.map(b=>({t:b.plugin.tier, x:Math.round(b.position.x), y:Math.round(b.position.y), snap:!!b.plugin.snapped})),
     discovered:[...discovered]}),
@@ -1181,10 +1201,10 @@ function setupInitialBoard(){
 /* ---------- Boot ---------- */
 loadImages().then(()=>{
   fit();
-  buildTray();
   queue = []; refillQueue(); newCurrent(); heldDrawX = heldX;
-  syncScore(); syncPreview(); syncHold(); syncObj(); syncTray();
+  syncScore();
   setupInitialBoard();
+  resetGoal();
   SDK.gameplayStart();
   requestAnimationFrame(loop);
 }).catch(err=>{
