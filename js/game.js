@@ -230,11 +230,20 @@ function trySnap(b, tol){
       }
     }
   }
+  // Trava: nunca encaixar abaixo do chão
+  if(ny + bh/2 > FLOOR_Y) ny = FLOOR_Y - bh/2;
   // Arredonda p/ evitar imprecisão de floating point no encaixe
   cx = Math.round(cx); ny = Math.round(ny);
   const quiet = b.plugin.unsnapAt && performance.now()-b.plugin.unsnapAt < 900 &&
                 Math.abs(cx-b.plugin.prevX) < 5 && Math.abs(ny-b.plugin.prevY) < 8;
   Body.setPosition(b, {x:cx, y:ny});
+  // Revalida: recalcula supportTop e corrige Y se ficou desalinhado (shake, quedas múltiplas)
+  const realTop = supportTop(b, cx, p.w);
+  const correctedNY = realTop - bh/2;
+  if(Math.abs(correctedNY - ny) > 2){
+    ny = Math.round(correctedNY);
+    Body.setPosition(b, {x:cx, y:ny});
+  }
   Body.setAngle(b, 0);
   Body.setVelocity(b, {x:0, y:0});
   Body.setAngularVelocity(b, 0);
@@ -293,19 +302,20 @@ function compact(){
   }
 }
 /* ---------- Corretor de sobreposição (JUICE) ---------- */
-// Só corre após shake ou quando há peças recém-assentadas.
-// Cooldown de 300ms entre correções p/ evitar tremores.
+// Cooldown de 500ms entre correções + cooldown por peça (evita loop).
 let lastResolveAt = 0;
 function resolveOverlaps(now){
-  if(now - lastResolveAt < 300) return;  // cooldown: não corrige todo frame
+  if(now - lastResolveAt < 500) return;  // cooldown global
 
   let anyFixed = false;
   for(const b of pieces){
     if(b.plugin.dead) continue;
+    // Cooldown por peça: não corrige a mesma peça 2x em 1.5s
+    if(b.plugin.lastResolve && now - b.plugin.lastResolve < 1500) continue;
     const bh = PIECES[b.plugin.tier].h - STUD;
     for(const o of pieces){
       if(o===b || o.plugin.dead) continue;
-      if(!b.plugin.snapped && !o.plugin.snapped) continue; // precisa de âncora
+      if(!b.plugin.snapped && !o.plugin.snapped) continue;
       const xOv = xOverlap(b.bounds.min.x, b.bounds.max.x, o.bounds.min.x, o.bounds.max.x);
       if(xOv <= 2) continue;
       const yOv = Math.min(b.bounds.max.y, o.bounds.max.y) - Math.max(b.bounds.min.y, o.bounds.min.y);
@@ -318,17 +328,16 @@ function resolveOverlaps(now){
       if(basePiece.plugin.snapped){
         const newY = basePiece.bounds.min.y - bh/2;
         if(newY < topPiece.position.y - 1){
-          // Em vez de teleportar, dá um empurrãozinho + animação
-          Body.setVelocity(topPiece, {x:0, y:-6});
+          Body.setVelocity(topPiece, {x:0, y:-5});
           Body.setPosition(topPiece, {x:topPiece.position.x, y:newY});
           if(!topPiece.plugin.snapped){
             Body.setAngle(topPiece, 0);
             Body.setAngularVelocity(topPiece, 0);
           }
-          // Juice: mini partículas e som
+          topPiece.plugin.lastResolve = now;  // marca cooldown individual
           burst(topPiece.position.x, topPiece.position.y, '#AAD4AA', 4);
           anyFixed = true;
-          break; // uma correção por peça por passagem
+          break;
         }
       }
     }
@@ -336,7 +345,6 @@ function resolveOverlaps(now){
 
   if(anyFixed){
     lastResolveAt = now;
-    sClick();  // som de encaixe
   }
 }
 
@@ -907,14 +915,15 @@ function frame(now){
         b.plugin.restT = 0;
       }
     }
-    // Corrige peças que afundaram abaixo do chão (tunneling da física)
+    // Corrige peças que afundaram abaixo do chão — snapped ou não
     for(const b of pieces){
-      if(b.plugin.dead || b.plugin.snapped) continue;
+      if(b.plugin.dead) continue;
       const bh = PIECES[b.plugin.tier].h - STUD;
-      if(b.position.y + bh/2 > FLOOR_Y + 4){
+      if(b.position.y + bh/2 > FLOOR_Y){
         Body.setPosition(b, {x:b.position.x, y:FLOOR_Y - bh/2});
         Body.setVelocity(b, {x:0, y:0});
-        trySnap(b);
+        Body.setAngle(b, 0); Body.setAngularVelocity(b, 0);
+        if(!b.plugin.snapped) trySnap(b);
       }
     }
 
