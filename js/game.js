@@ -739,10 +739,8 @@ function dangerCheck(dt){
 /* ---------- Render ---------- */
 function tile(img, x, y, s){ ctx.drawImage(IMGS[img], x, y, s, s); }
 
-function drawBase(){   // base de terra: blocos dirt_top (2 pinos) alinhados ao grid + corpo marrom
+function drawBase(){   // base de terra: blocos dirt_top alinhados ao grid
   const topY = FLOOR_Y;
-  ctx.fillStyle = '#BF7D5C'; ctx.fillRect(0, topY+18, W, H-topY);   // corpo de terra
-  ctx.fillStyle = '#B67150'; ctx.fillRect(0, H-16, W, 16);         // sombra na base
   for(let lx=INNER_L; lx<INNER_R; lx+=64)                           // 7 blocos dirt_top alinhados ao grid
     ctx.drawImage(IMGS.dirt_top, lx, topY-10, 66, 66);
 }
