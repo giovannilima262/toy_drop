@@ -264,6 +264,25 @@ function trySnap(b, tol){
   }
   adjacencyCheck(b);
 }
+/* ---------- Verificador silencioso de encaixe ---------- */
+// Percorre todas as peças snapped a cada ~2s e corrige desalinhamentos SEM efeitos.
+let lastQuietCheck = 0;
+function quietVerify(now){
+  if(now - lastQuietCheck < 2000) return;
+  lastQuietCheck = now;
+  for(const b of pieces){
+    if(!b.plugin.snapped || b.plugin.dead) continue;
+    const p = PIECES[b.plugin.tier], bh = p.h-STUD;
+    const cx = b.position.x;
+    const expectedTop = supportTop(b, cx, p.w);
+    const expectedNY = expectedTop - bh/2;
+    if(Math.abs(expectedNY - b.position.y) > 1){
+      // Corrige silenciosamente — sem partículas, som, ou shake
+      Body.setPosition(b, {x:cx, y:Math.round(expectedNY)});
+    }
+  }
+}
+
 function adjacencyCheck(b){
   for(const o of pieces){
     if(o===b || o.plugin.dead || !o.plugin.snapped || o.plugin.tier!==b.plugin.tier) continue;
@@ -931,6 +950,7 @@ function frame(now){
     compact();
     unstick(dt);
     resolveOverlaps(now);    // corrige peças sobrepostas (c/ cooldown e juice)
+    quietVerify(now);        // verificação silenciosa a cada 2s (sem efeitos)
 
     if(!cur && now>=nextAt) newCurrent();
     warn = dangerCheck(dt);
