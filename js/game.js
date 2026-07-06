@@ -984,56 +984,12 @@ window.TD = {
 };
 
 /* ---------- Tabuleiro inicial ---------- */
-// Desenha um castelo 2D (pixel-art) com peças LEGO e espaços vazios.
-// A grelha usa 14 colunas × 8 linhas — cada célula = 1 peça de 32px (t1 ou t2).
-// Zeros = espaços vazios que formam: porta, janelas e ameias.
+// Três torres com peças de 2 e 4 pinos, espaçadas entre si.
+// Pouquíssimas peças de 1 pino — só nas ameias.
 function setupInitialBoard(){
-  const halfY = FLOOR_Y - (FLOOR_Y - DANGER_Y) / 2;   // ~475
+  const halfY = FLOOR_Y - (FLOOR_Y - DANGER_Y) / 2;
 
-  // Coloca uma peça de 32px em posição exata (row=linha desde o chão)
-  function pixel(tier, k, row){
-    const p = PIECES[tier];
-    if(k < 0 || k > 13) return null;                  // 14 colunas (0..13)
-    const cx = INNER_L + p.w / 2 + k * GRID;
-    const bh = p.h - STUD;
-    const cellH = 30;                                  // altura de cada linha da grelha
-    const cy = FLOOR_Y - row * cellH - bh / 2;
-    if(cy - bh / 2 < halfY) return null;
-    if(!fits(null, cx, cy, p.w, bh)) return null;     // evita overlap com peças já postas
-    const b = spawnBody(tier, cx, cy, false);
-    b.plugin.snapped = true;
-    b.plugin.initial = true;
-    Body.setStatic(b, true);
-    return b;
-  }
-
-  // ── GRELHA DO CASTELO ──
-  // 14 colunas (k=0..13), 8 linhas (0=chão). 1=peça, 0=vazio.
-  // Espaços vazios: porta central (k=6,7), janelas nas torres (k=2,11), ameias.
-  const grid = [
-    // k: 0  1  2  3  4  5  6  7  8  9 10 11 12 13
-    [0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0],  // ln 7 — ameias topo █·█
-    [0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0],  // ln 6 — ameias + merlão central
-    [0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0],  // ln 5 — topo das torres
-    [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],  // ln 4 — muralha superior
-    [0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1],  // ln 3 — janela torre esq/dir
-    [0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1],  // ln 2 — janela torre esq/dir
-    [0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0],  // ln 1 — base + porta (vão central)
-    [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1],  // ln 0 — fundação + porta
-  ];
-
-  // Constrói da base para o topo, alternando t1 (vermelho) e t2 (amarelo)
-  for(let row = 0; row < grid.length; row++){
-    for(let k = 0; k < 14; k++){
-      if(grid[row][k]){
-        const tier = (row + k) % 2 ? 1 : 2;
-        pixel(tier, k, row);
-      }
-    }
-  }
-
-  // ── PREENCHE ESPAÇOS VAZIOS (peças aleatórias empilhadas com física) ──
-  function placeAny(tier, k){
+  function place(tier, k){
     const p = PIECES[tier];
     if(k < 0 || k > (INNER_W - p.w) / GRID) return null;
     const cx = INNER_L + p.w / 2 + k * GRID;
@@ -1055,12 +1011,28 @@ function setupInitialBoard(){
     return b;
   }
 
-  const pool = [1,1,1,1,2,2,2,3,3];
-  for(let attempt = 0; attempt < 400; attempt++){
-    const tier = pool[(Math.random() * pool.length) | 0];
-    const p = PIECES[tier];
-    const k = (Math.random() * ((INNER_W - p.w) / GRID + 1)) | 0;
-    placeAny(tier, k);
+  // ═══ CASTELO ALEATÓRIO — varia a cada reload ═══
+  const COLS = [0, 2, 4, 6, 8, 10];       // colunas pares (peças 64px não colidem)
+
+  for(const k of COLS){
+    // Sorteia altura: 3 a 8 peças por coluna
+    const n = 3 + (Math.random() * 6 | 0);
+
+    // Base: prefere t5 (branca 4p) ou t4 (verde 2p), às vezes t3 (azul)
+    const bases = [5, 5, 4, 4, 4, 3, 3];
+    if(!place(bases[Math.random() * bases.length | 0], k)) continue;
+
+    // Meio: mistura de t2(amarelo), t3(azul), t4(verde), t5(branca)
+    const mids = [2, 2, 3, 3, 3, 4, 4, 4, 5, 5];
+    for(let i = 1; i < n - 2; i++){
+      if(!place(mids[Math.random() * mids.length | 0], k)) break;
+    }
+
+    // Topo: peças de 1 pino e azul — espira colorida
+    const tops = [1, 1, 1, 2, 2, 2, 3, 3];
+    for(let i = 0; i < 3; i++){
+      if(!place(tops[Math.random() * tops.length | 0], k)) break;
+    }
   }
 }
 
