@@ -447,19 +447,31 @@ function doMerge(a,b){
         if(tx!==base && fits(null, tx, ny0, np.w, nbh)){ const d = Math.abs(tx-mx); if(d<bestD){ bestD=d; nx=tx; ok=true; } }
       }
     }
-    if(!ok){                                    // sem vaga: sobe e procura coluna livre
+    if(!ok){                                    // sem vaga imediata: busca coluna + altura
       let found = false;
-      for(let dk = 1; dk <= (INNER_W-np.w)/GRID; dk++){
+      for(let dk = 1; dk <= (INNER_W-np.w)/GRID && !found; dk++){
         for(const s of [-1,1]){
           const tk = Math.round((base - INNER_L - np.w/2)/GRID) + s*dk;
           const tx = INNER_L + np.w/2 + tk*GRID;
           if(tx < INNER_L || tx + np.w/2 > INNER_R) continue;
-          const tny = columnTop(tx, np.w, null) - nbh/2;
-          if(fits(null, tx, tny, np.w, nbh)){ nx = tx; ny = tny; found = true; break; }
+          let tny = columnTop(tx, np.w, null) - nbh/2;
+          // Se não couber no topo da pilha, sobe até achar espaço
+          for(let climb = 0; climb < 15; climb++){
+            if(fits(null, tx, tny, np.w, nbh)){ nx = tx; ny = tny; found = true; break; }
+            tny -= nbh;  // sobe uma altura de peça
+          }
+          if(found) break;
         }
-        if(found) break;
       }
-      if(!found){ nx = base; ny = columnTop(base, np.w, null) - nbh/2; }
+      if(!found){
+        // Último recurso: coluna do merge, subindo até caber
+        nx = base;
+        ny = columnTop(base, np.w, null) - nbh/2;
+        for(let climb = 0; climb < 20; climb++){
+          if(fits(null, nx, ny, np.w, nbh)) break;
+          ny -= nbh;
+        }
+      }
     }
     const nb = spawnBody(nt, nx, ny, true);
     Body.setVelocity(nb, {x:0, y:-1.5});
