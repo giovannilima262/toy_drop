@@ -447,8 +447,19 @@ function doMerge(a,b){
         if(tx!==base && fits(null, tx, ny0, np.w, nbh)){ const d = Math.abs(tx-mx); if(d<bestD){ bestD=d; nx=tx; ok=true; } }
       }
     }
-    if(!ok){                                    // sem vaga adjacente: senta EM CIMA da pilha na coluna do merge (nunca atravessa/teleporta)
-      nx = base; ny = columnTop(base, np.w, null) - nbh/2;
+    if(!ok){                                    // sem vaga: sobe e procura coluna livre
+      let found = false;
+      for(let dk = 1; dk <= (INNER_W-np.w)/GRID; dk++){
+        for(const s of [-1,1]){
+          const tk = Math.round((base - INNER_L - np.w/2)/GRID) + s*dk;
+          const tx = INNER_L + np.w/2 + tk*GRID;
+          if(tx < INNER_L || tx + np.w/2 > INNER_R) continue;
+          const tny = columnTop(tx, np.w, null) - nbh/2;
+          if(fits(null, tx, tny, np.w, nbh)){ nx = tx; ny = tny; found = true; break; }
+        }
+        if(found) break;
+      }
+      if(!found){ nx = base; ny = columnTop(base, np.w, null) - nbh/2; }
     }
     const nb = spawnBody(nt, nx, ny, true);
     Body.setVelocity(nb, {x:0, y:-1.5});
@@ -943,11 +954,17 @@ function frame(now){
       const p = PIECES[b.plugin.tier], bh = p.h-STUD;
       if(b.position.x < INNER_L-10 || b.position.x > INNER_R+10 ||
          b.position.y + bh/2 > FLOOR_Y + 10){
-        const nx = INNER_L + 32 + Math.random()*(INNER_W-64);
-        Body.setPosition(b, {x:nx, y:SPAWN_Y});
-        Body.setVelocity(b, {x:(Math.random()-.5)*3, y:3});
-        Body.setAngle(b, 0);
-        Body.setAngularVelocity(b, 0);
+        // 1º tenta encaixar nos arredores
+        Body.setPosition(b, {x:Math.max(INNER_L, Math.min(INNER_R, b.position.x)), y:FLOOR_Y - bh/2});
+        trySnap(b);
+        // Se não encaixou, manda pro topo
+        if(!b.plugin.snapped){
+          const nx = INNER_L + 32 + Math.random()*(INNER_W-64);
+          Body.setPosition(b, {x:nx, y:SPAWN_Y});
+          Body.setVelocity(b, {x:(Math.random()-.5)*3, y:3});
+          Body.setAngle(b, 0);
+          Body.setAngularVelocity(b, 0);
+        }
       }
     }
 
