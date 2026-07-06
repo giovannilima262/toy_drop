@@ -743,8 +743,8 @@ function drawBase(){   // base de terra: blocos dirt_top (2 pinos) alinhados ao 
   const topY = FLOOR_Y;
   ctx.fillStyle = '#BF7D5C'; ctx.fillRect(0, topY+18, W, H-topY);   // corpo de terra
   ctx.fillStyle = '#B67150'; ctx.fillRect(0, H-16, W, 16);         // sombra na base
-  for(let lx=INNER_L; lx<INNER_R; lx+=64)                           // 7 blocos dirt_top → studs em 32,64,…,448
-    ctx.drawImage(IMGS.dirt_top, lx-1, topY-10, 66, 66);
+  for(let lx=INNER_L; lx<INNER_R; lx+=64)                           // 7 blocos dirt_top alinhados ao grid
+    ctx.drawImage(IMGS.dirt_top, lx, topY-10, 66, 66);
 }
 
 function drawPiece(b, now){
