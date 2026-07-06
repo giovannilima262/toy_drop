@@ -113,7 +113,7 @@ let objIdx = 0, objProg = 0;
 let dangerT = 0, usedShake = false;
 let particles = [], popups = [], chars = [], rings = [], fxConf = [];
 let pendingMerges = [];
-const PANEL = { l:0.246, t:0.193, w:0.537, h:0.616 };   // painel em % do stage (casa com #game no CSS)
+const PANEL = { l:0.2315, t:0.193, w:0.537, h:0.616 };  // painel em % do stage (centrado)
 let camShake = 0, timeScale = 1, targetTS = 1;
 let gameClock = 0;   // tempo de simulação (soma dt por frame jogado): base do envelhecimento de perigo
 

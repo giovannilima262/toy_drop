@@ -11,10 +11,10 @@
   #wrap{height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
   #stage{position:relative;flex:none;background:#3a7ec2 url(assets/background.png) center/cover no-repeat;overflow:hidden}
   #stage.landscape{background:none}   /* landscape: fundo é o background2 do body — um OU o outro */
-  #panelFrame{position:absolute;left:22.9%;top:17.7%;width:57.1%;height:64.8%;border-radius:calc(var(--u)*5);background:#277bdc;border:calc(var(--u)*1.6) solid #4499f2;box-shadow:0 calc(var(--u)*1.5) calc(var(--u)*5) rgba(6,40,100,.45), inset 0 calc(var(--u)*0.6) calc(var(--u)*1.5) rgba(9,50,120,.35)}
+  #panelFrame{position:absolute;left:21.45%;top:17.7%;width:57.1%;height:64.8%;border-radius:calc(var(--u)*5);background:#277bdc;border:calc(var(--u)*1.6) solid #4499f2;box-shadow:0 calc(var(--u)*1.5) calc(var(--u)*5) rgba(6,40,100,.45), inset 0 calc(var(--u)*0.6) calc(var(--u)*1.5) rgba(9,50,120,.35)}
   canvas{position:absolute;display:block;touch-action:none}
-  /* área de jogo alinhada ao painel azul do cenário */
-  #game{left:24.6%;top:19.3%;width:53.7%;height:61.6%}
+  /* área de jogo perfeitamente centrada */
+  #game{left:23.15%;top:19.3%;width:53.7%;height:61.6%}
   /* camada de efeitos: cobre a cena toda, SEM recorte — a comemoração voa pra fora do painel */
   #fx{left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1}
 
@@ -32,8 +32,8 @@
   /* colunas laterais */
   /* colunas ancoradas ao painel (hugando as bordas), pra sobreviver ao corte lateral do cover */
   .side{position:absolute;width:13%;display:flex;flex-direction:column;gap:calc(var(--u)*1.8);z-index:2}
-  #leftcol{right:69.5%;top:20.5%}
-  #rightcol{left:69.5%;top:20.5%}
+  #leftcol{right:70.95%;top:20.5%}
+  #rightcol{left:68.05%;top:20.5%}
   .card{background:#fff;border-radius:calc(var(--u)*2.8);padding:calc(var(--u)*1.3) calc(var(--u)*0.9);box-shadow:0 calc(var(--u)*0.8) 0 rgba(20,50,90,.18);text-align:center}
   .clabel{font-size:calc(var(--u)*2.1);font-weight:800;color:#3f83d0;text-transform:uppercase;letter-spacing:.04em;margin-bottom:calc(var(--u)*0.9)}
   .thumbs{display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*1)}
