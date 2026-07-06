@@ -152,7 +152,6 @@ function supportTop(self, cx, w){
   const l = cx-w/2, r = cx+w/2;
   for(const o of pieces){
     if(o===self || !o.plugin.snapped) continue;
-    if(o.bounds.min.y < self.position.y) continue;
     if(xOverlap(l,r,o.bounds.min.x,o.bounds.max.x) >= 8)
       top = Math.min(top, o.bounds.min.y);
   }
@@ -237,13 +236,6 @@ function trySnap(b, tol){
   const quiet = b.plugin.unsnapAt && performance.now()-b.plugin.unsnapAt < 900 &&
                 Math.abs(cx-b.plugin.prevX) < 5 && Math.abs(ny-b.plugin.prevY) < 8;
   Body.setPosition(b, {x:cx, y:ny});
-  // Revalida: recalcula supportTop e corrige Y se ficou desalinhado (shake, quedas múltiplas)
-  const realTop = supportTop(b, cx, p.w);
-  const correctedNY = realTop - bh/2;
-  if(Math.abs(correctedNY - ny) > 2){
-    ny = Math.round(correctedNY);
-    Body.setPosition(b, {x:cx, y:ny});
-  }
   Body.setAngle(b, 0);
   Body.setVelocity(b, {x:0, y:0});
   Body.setAngularVelocity(b, 0);
@@ -264,25 +256,6 @@ function trySnap(b, tol){
   }
   adjacencyCheck(b);
 }
-/* ---------- Verificador silencioso de encaixe ---------- */
-// Percorre todas as peças snapped a cada ~2s e corrige desalinhamentos SEM efeitos.
-let lastQuietCheck = 0;
-function quietVerify(now){
-  if(now - lastQuietCheck < 2000) return;
-  lastQuietCheck = now;
-  for(const b of pieces){
-    if(!b.plugin.snapped || b.plugin.dead) continue;
-    const p = PIECES[b.plugin.tier], bh = p.h-STUD;
-    const cx = b.position.x;
-    const expectedTop = supportTop(b, cx, p.w);
-    const expectedNY = expectedTop - bh/2;
-    if(Math.abs(expectedNY - b.position.y) > 1){
-      // Corrige silenciosamente — sem partículas, som, ou shake
-      Body.setPosition(b, {x:cx, y:Math.round(expectedNY)});
-    }
-  }
-}
-
 function adjacencyCheck(b){
   for(const o of pieces){
     if(o===b || o.plugin.dead || !o.plugin.snapped || o.plugin.tier!==b.plugin.tier) continue;
@@ -320,50 +293,48 @@ function compact(){
     }
   }
 }
-/* ---------- Corretor de sobreposição (JUICE) ---------- */
-// Cooldown de 500ms entre correções + cooldown por peça (evita loop).
-let lastResolveAt = 0;
-function resolveOverlaps(now){
-  if(now - lastResolveAt < 500) return;  // cooldown global
+/* ---------- Micro explosão em sobreposições ---------- */
+// Detecta peças snapped sobrepostas e aplica uma micro explosão
+// que empurra as peças ao redor, usando física p/ reposicionar.
+let lastMicroBurst = 0;
+function microBurst(now){
+  if(now - lastMicroBurst < 800) return;  // cooldown: não explode todo frame
 
-  let anyFixed = false;
   for(const b of pieces){
-    if(b.plugin.dead) continue;
-    // Cooldown por peça: não corrige a mesma peça 2x em 1.5s
-    if(b.plugin.lastResolve && now - b.plugin.lastResolve < 1500) continue;
-    const bh = PIECES[b.plugin.tier].h - STUD;
+    if(!b.plugin.snapped || b.plugin.dead) continue;
     for(const o of pieces){
-      if(o===b || o.plugin.dead) continue;
-      if(!b.plugin.snapped && !o.plugin.snapped) continue;
+      if(o===b || o.plugin.dead || !o.plugin.snapped) continue;
       const xOv = xOverlap(b.bounds.min.x, b.bounds.max.x, o.bounds.min.x, o.bounds.max.x);
-      if(xOv <= 2) continue;
+      if(xOv <= 3) continue;
       const yOv = Math.min(b.bounds.max.y, o.bounds.max.y) - Math.max(b.bounds.min.y, o.bounds.min.y);
-      if(yOv <= 2) continue;
+      if(yOv <= 3) continue;
 
-      const topPiece  = b.bounds.min.y < o.bounds.min.y ? b : o;
-      const basePiece = topPiece === b ? o : b;
-      const baseBh = PIECES[basePiece.plugin.tier].h - STUD;
+      // Micro explosão no ponto médio da sobreposição
+      const mx = (b.position.x + o.position.x) / 2;
+      const my = (b.position.y + o.position.y) / 2;
 
-      if(basePiece.plugin.snapped){
-        const newY = basePiece.bounds.min.y - bh/2;
-        if(newY < topPiece.position.y - 1){
-          Body.setVelocity(topPiece, {x:0, y:-5});
-          Body.setPosition(topPiece, {x:topPiece.position.x, y:newY});
-          if(!topPiece.plugin.snapped){
-            Body.setAngle(topPiece, 0);
-            Body.setAngularVelocity(topPiece, 0);
-          }
-          topPiece.plugin.lastResolve = now;  // marca cooldown individual
-          burst(topPiece.position.x, topPiece.position.y, '#AAD4AA', 4);
-          anyFixed = true;
-          break;
+      // Dessolta as duas peças e peças próximas
+      for(const p of pieces){
+        if(p.plugin.dead || !p.plugin.snapped) continue;
+        const dist = Math.hypot(p.position.x - mx, p.position.y - my);
+        if(dist < 120){
+          unsnap(p);
+          const force = (1 - dist/120) * 10;
+          const angle = Math.atan2(p.position.y - my, p.position.x - mx);
+          Body.setVelocity(p, {
+            x: Math.cos(angle) * force + (Math.random()-.5)*4,
+            y: Math.sin(angle) * force - 4 - Math.random()*3
+          });
         }
       }
-    }
-  }
 
-  if(anyFixed){
-    lastResolveAt = now;
+      // Efeito visual
+      burst(mx, my, '#FF8833', 12);
+      camShake = Math.max(camShake, 3);
+      sUnsnap();
+      lastMicroBurst = now;
+      return;  // uma explosão por frame
+    }
   }
 }
 
@@ -920,37 +891,65 @@ function frame(now){
 
     for(const b of pieces){
       if(b.plugin.snapped) continue;
-      // Peça largada há muito tempo sem guia → força encaixe imediato
-      if(b.plugin.guided===undefined){
+      if(b.plugin.guided===undefined){   // failsafe: não assentou em 3,5s → força vaga mais próxima
         b.plugin.aliveT = (b.plugin.aliveT||0)+dt;
-        if(b.plugin.aliveT > 800){ trySnap(b); continue; }
+        if(b.plugin.aliveT > 3500){ forcePlace(b); continue; }
       }
-      // Peça parada → tenta encaixar
       const sp = Math.hypot(b.velocity.x, b.velocity.y);
-      if(sp < .4 && Math.abs(b.angularVelocity) < .06){
-        b.plugin.restT += dt;
-        if(b.plugin.restT > 90) trySnap(b);
-      } else {
-        b.plugin.restT = 0;
+      if(sp<.4 && Math.abs(b.angularVelocity)<.06) b.plugin.restT += dt; else b.plugin.restT = 0;
+      if(b.plugin.restT > 110) trySnap(b);
+      if(sp < .8) b.plugin.limboT = (b.plugin.limboT||0)+dt; else b.plugin.limboT = 0;
+      if(!b.plugin.snapped && b.plugin.limboT > 1200){
+        b.plugin.limboT = 0;
+        trySnap(b, 44);
+        if(!b.plugin.snapped){
+          const steep = Math.abs(Math.sin(b.angle)) > .3;
+          b.plugin.releases = b.plugin.releases||0;
+          if(steep || b.plugin.releases >= 2){
+            let lt = FLOOR_Y, rt = FLOOR_Y;
+            for(const o of pieces){
+              if(o===b || o.plugin.dead) continue;
+              if(xOverlap(b.bounds.min.x-56,b.bounds.min.x,o.bounds.min.x,o.bounds.max.x)>0) lt=Math.min(lt,o.bounds.min.y);
+              if(xOverlap(b.bounds.max.x,b.bounds.max.x+56,o.bounds.min.x,o.bounds.max.x)>0) rt=Math.min(rt,o.bounds.min.y);
+            }
+            const dir = lt>=rt ? -1 : 1;
+            b.plugin.guided = undefined;
+            Body.setVelocity(b, {x:dir*(3.5+Math.random()*2), y:-8-Math.random()*3});
+            Body.setAngularVelocity(b, -Math.sign(b.angle||dir)*.12);
+            burst(b.position.x, b.position.y, '#FFFFFF', 10);
+          } else {
+            b.plugin.releases++;
+            let solto = false;
+            for(const o of pieces){
+              if(o===b || o.plugin.dead || !o.plugin.snapped) continue;
+              if(xOverlap(b.bounds.min.x-4,b.bounds.max.x+4,o.bounds.min.x,o.bounds.max.x)>0 &&
+                 Math.min(b.bounds.max.y+4,o.bounds.max.y)-Math.max(b.bounds.min.y-4,o.bounds.min.y)>0){
+                unsnap(o, 2); solto = true;
+              }
+            }
+            if(solto){ camShake = Math.max(camShake, 4); sUnsnap(); }
+          }
+        }
       }
     }
-    // Corrige peças que afundaram abaixo do chão — snapped ou não
-    for(const b of pieces){
-      if(b.plugin.dead) continue;
-      const bh = PIECES[b.plugin.tier].h - STUD;
-      if(b.position.y + bh/2 > FLOOR_Y){
-        Body.setPosition(b, {x:b.position.x, y:FLOOR_Y - bh/2});
-        Body.setVelocity(b, {x:0, y:0});
-        Body.setAngle(b, 0); Body.setAngularVelocity(b, 0);
-        if(!b.plugin.snapped) trySnap(b);
-      }
-    }
-
     processMerges();
     compact();
     unstick(dt);
-    resolveOverlaps(now);    // corrige peças sobrepostas (c/ cooldown e juice)
-    quietVerify(now);        // verificação silenciosa a cada 2s (sem efeitos)
+    microBurst(now);  // micro explosões em sobreposições (usa física)
+
+    // Reposiciona peças que saíram pelas laterais ou foram abaixo do chão
+    for(const b of pieces){
+      if(b.plugin.dead || b.plugin.snapped) continue;
+      const p = PIECES[b.plugin.tier], bh = p.h-STUD;
+      if(b.position.x < INNER_L-10 || b.position.x > INNER_R+10 ||
+         b.position.y + bh/2 > FLOOR_Y + 10){
+        const nx = INNER_L + 32 + Math.random()*(INNER_W-64);
+        Body.setPosition(b, {x:nx, y:SPAWN_Y});
+        Body.setVelocity(b, {x:(Math.random()-.5)*3, y:3});
+        Body.setAngle(b, 0);
+        Body.setAngularVelocity(b, 0);
+      }
+    }
 
     if(!cur && now>=nextAt) newCurrent();
     warn = dangerCheck(dt);
