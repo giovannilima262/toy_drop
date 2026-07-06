@@ -186,14 +186,23 @@ function nearestFit(tier, fromX, self, maxDist){   // coluna que comporta a peç
   }
   return best;
 }
-function forcePlace(b){   // failsafe: peça travada há muito tempo → assenta na vaga próxima que caiba (sem teleporte)
+function forcePlace(b){   // failsafe: peça sem se posicionar há muito tempo → vaga próxima que caiba; sem vaga nos arredores, volta pro topo e cai de novo
   const p = PIECES[b.plugin.tier], bh = p.h-STUD;
-  const nf = nearestFit(b.plugin.tier, b.position.x, b, GRID*4);   // só vagas perto; senão empilha na própria coluna
-  const cx = nf ? nf.cx : gridX(b.plugin.tier, b.position.x);
-  const ny = nf ? nf.ny : (columnTop(cx, p.w, b) - bh/2);
+  const nf = nearestFit(b.plugin.tier, b.position.x, b, GRID*4);   // só vagas perto (evita teleporte)
+  if(!nf){
+    burst(b.position.x, b.position.y, '#FFFFFF', 8);
+    Body.setPosition(b, {x:gridX(b.plugin.tier, b.position.x), y:SPAWN_Y});
+    Body.setVelocity(b, {x:0, y:3});
+    Body.setAngle(b, 0); Body.setAngularVelocity(b, 0);
+    b.isSensor = false; b.plugin.guided = undefined;
+    b.plugin.aliveT = 0; b.plugin.restT = 0; b.plugin.releases = 0; b.plugin.pops = 0;
+    return;
+  }
+  const cx = nf.cx, ny = nf.ny;
   Body.setPosition(b, {x:cx, y:ny});
   Body.setAngle(b, 0); Body.setVelocity(b, {x:0,y:0}); Body.setAngularVelocity(b, 0);
   Body.setStatic(b, true);
+  b.positionImpulse.x = 0; b.positionImpulse.y = 0;   // Matter aplica impulso residual até em corpo estático (postSolvePosition) — zera p/ peça não deslizar depois de encaixada
   b.isSensor = false;
   b.plugin.snapped = true; b.plugin.guided = undefined;
   b.plugin.releases = 0; b.plugin.pops = 0; b.plugin.aliveT = 0;
@@ -214,20 +223,18 @@ function trySnap(b, tol){
     if(Math.abs(ty-b.position.y) > tol || Math.abs(tx-b.position.x) > p.w/2+GRID*0.8) continue;
     if(fits(b, tx, ty, p.w, bh)){ const d = Math.abs(tx-b.position.x); if(d<bestD){ bestD=d; cx=tx; ny=ty; ok=true; } }
   }
-  // Se nenhuma vaga próxima couber → procura em todas as colunas
+  // Se nenhuma vaga próxima couber → procura só nos arredores (±4 pinos)
   if(!ok){
-    const nf = nearestFit(b.plugin.tier, b.position.x, b, null); // busca SEM limite de distância
-    if(nf){
-      cx = nf.cx; ny = nf.ny;
-    } else {
-      // Empilha na coluna atual, subindo até não colidir
-      cx = gridX(b.plugin.tier, b.position.x);
-      ny = columnTop(cx, p.w, b) - bh/2;
-      let safety = 0;
-      while(!fits(b, cx, ny, p.w, bh) && safety < 20){
-        ny -= bh; safety++;  // sobe uma altura de peça a cada tentativa
-      }
-    }
+    const nf = nearestFit(b.plugin.tier, b.position.x, b, GRID*4);
+    if(nf){ cx = nf.cx; ny = nf.ny; ok = true; }
+  }
+  // Sem vaga nos arredores: não força encaixe nem teleporta — deixa a física agir;
+  // se passar o tempo sem se posicionar, o failsafe (forcePlace) manda pro topo
+  if(!ok){
+    if(b.isStatic) Body.setStatic(b, false);
+    b.plugin.snapped = false;
+    b.plugin.restT = 0;
+    return;
   }
   // Trava: nunca encaixar abaixo do chão
   if(ny + bh/2 > FLOOR_Y) ny = FLOOR_Y - bh/2;
@@ -240,6 +247,7 @@ function trySnap(b, tol){
   Body.setVelocity(b, {x:0, y:0});
   Body.setAngularVelocity(b, 0);
   Body.setStatic(b, true);
+  b.positionImpulse.x = 0; b.positionImpulse.y = 0;   // idem forcePlace: sem isso o resíduo do solver arrasta a peça estática p/ fora da área
   b.plugin.snapped = true;
   b.plugin.unsnapAt = 0;
   b.plugin.guided = undefined;
@@ -447,31 +455,13 @@ function doMerge(a,b){
         if(tx!==base && fits(null, tx, ny0, np.w, nbh)){ const d = Math.abs(tx-mx); if(d<bestD){ bestD=d; nx=tx; ok=true; } }
       }
     }
-    if(!ok){                                    // sem vaga imediata: busca coluna + altura
-      let found = false;
-      for(let dk = 1; dk <= (INNER_W-np.w)/GRID && !found; dk++){
-        for(const s of [-1,1]){
-          const tk = Math.round((base - INNER_L - np.w/2)/GRID) + s*dk;
-          const tx = INNER_L + np.w/2 + tk*GRID;
-          if(tx < INNER_L || tx + np.w/2 > INNER_R) continue;
-          let tny = columnTop(tx, np.w, null) - nbh/2;
-          // Se não couber no topo da pilha, sobe até achar espaço
-          for(let climb = 0; climb < 15; climb++){
-            if(fits(null, tx, tny, np.w, nbh)){ nx = tx; ny = tny; found = true; break; }
-            tny -= nbh;  // sobe uma altura de peça
-          }
-          if(found) break;
-        }
-      }
-      if(!found){
-        // Último recurso: coluna do merge, subindo até caber
-        nx = base;
-        ny = columnTop(base, np.w, null) - nbh/2;
-        for(let climb = 0; climb < 20; climb++){
-          if(fits(null, nx, ny, np.w, nbh)) break;
-          ny -= nbh;
-        }
-      }
+    if(!ok){                                    // sem vaga imediata: vaga mais próxima nos arredores (±4 pinos), assentada no topo da coluna
+      const nf = nearestFit(nt, mx, null, GRID*4);
+      if(nf){ nx = nf.cx; ny = nf.ny; ok = true; }
+    }
+    if(!ok){                                    // nada nos arredores: nasce solta no ponto do merge; física acomoda, e se o tempo passar o failsafe manda pro topo
+      nx = Math.max(INNER_L+np.w/2, Math.min(INNER_R-np.w/2, mx));
+      ny = ny0;
     }
     const nb = spawnBody(nt, nx, ny, true);
     Body.setVelocity(nb, {x:0, y:-1.5});
@@ -914,7 +904,7 @@ function frame(now){
 
     for(const b of pieces){
       if(b.plugin.snapped) continue;
-      if(b.plugin.guided===undefined){   // failsafe: não assentou em 3,5s → força vaga mais próxima
+      if(b.plugin.guided===undefined){   // failsafe: não assentou em 3,5s → vaga próxima que caiba, senão manda pro topo
         b.plugin.aliveT = (b.plugin.aliveT||0)+dt;
         if(b.plugin.aliveT > 3500){ forcePlace(b); continue; }
       }
@@ -962,8 +952,18 @@ function frame(now){
 
     // Reposiciona peças que saíram pelas laterais ou foram abaixo do chão
     for(const b of pieces){
-      if(b.plugin.dead || b.plugin.snapped) continue;
+      if(b.plugin.dead) continue;
       const p = PIECES[b.plugin.tier], bh = p.h-STUD;
+      if(b.plugin.snapped){
+        // peça encaixada também é validada: se foi arrastada p/ fora da área ou saiu do grid, re-encaixa
+        if(b.position.y + bh/2 > FLOOR_Y + 1 ||
+           b.position.x - p.w/2 < INNER_L - 3 || b.position.x + p.w/2 > INNER_R + 3 ||
+           Math.abs(b.position.x - gridX(b.plugin.tier, b.position.x)) > 1){
+          Body.setPosition(b, {x:gridX(b.plugin.tier, b.position.x), y:Math.min(b.position.y, FLOOR_Y - bh/2)});
+          trySnap(b);
+        }
+        continue;
+      }
       if(b.position.x < INNER_L-10 || b.position.x > INNER_R+10 ||
          b.position.y + bh/2 > FLOOR_Y + 10){
         // 1º tenta encaixar nos arredores
