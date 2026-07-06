@@ -215,7 +215,12 @@ function trySnap(b, tol){
     if(Math.abs(ty-b.position.y) > tol || Math.abs(tx-b.position.x) > p.w/2+GRID*0.8) continue;
     if(fits(b, tx, ty, p.w, bh)){ const d = Math.abs(tx-b.position.x); if(d<bestD){ bestD=d; cx=tx; ny=ty; ok=true; } }
   }
-  if(!ok){ b.plugin.restT = 0; return; }
+  // Se nenhuma vaga próxima couber → força na vaga mais próxima IMEDIATAMENTE
+  if(!ok){
+    const nf = nearestFit(b.plugin.tier, b.position.x, b, GRID*4);
+    cx = nf ? nf.cx : gridX(b.plugin.tier, b.position.x);
+    ny = nf ? nf.ny : (columnTop(cx, p.w, b) - bh/2);
+  }
   const quiet = b.plugin.unsnapAt && performance.now()-b.plugin.unsnapAt < 900 &&
                 Math.abs(cx-b.plugin.prevX) < 5 && Math.abs(ny-b.plugin.prevY) < 8;
   Body.setPosition(b, {x:cx, y:ny});
@@ -226,7 +231,7 @@ function trySnap(b, tol){
   b.plugin.snapped = true;
   b.plugin.unsnapAt = 0;
   b.plugin.guided = undefined;
-  b.plugin.releases = 0; b.plugin.pops = 0;
+  b.plugin.releases = 0; b.plugin.pops = 0; b.plugin.aliveT = 0;
   if(!quiet){
     b.plugin.land = performance.now();
     rings.push({x:cx, y:ny, w:p.w, h:bh, t0:performance.now()});
@@ -831,45 +836,18 @@ function frame(now){
 
     for(const b of pieces){
       if(b.plugin.snapped) continue;
-      if(b.plugin.guided===undefined){   // failsafe: não assentou em 3,5s → força vaga mais próxima
+      // Peça largada há muito tempo sem guia → força encaixe imediato
+      if(b.plugin.guided===undefined){
         b.plugin.aliveT = (b.plugin.aliveT||0)+dt;
-        if(b.plugin.aliveT > 3500){ forcePlace(b); continue; }
+        if(b.plugin.aliveT > 800){ trySnap(b); continue; }
       }
+      // Peça parada → tenta encaixar
       const sp = Math.hypot(b.velocity.x, b.velocity.y);
-      if(sp<.4 && Math.abs(b.angularVelocity)<.06) b.plugin.restT += dt; else b.plugin.restT = 0;
-      if(b.plugin.restT > 110) trySnap(b);
-      if(sp < .8) b.plugin.limboT = (b.plugin.limboT||0)+dt; else b.plugin.limboT = 0;
-      if(!b.plugin.snapped && b.plugin.limboT > 1200){
-        b.plugin.limboT = 0;
-        trySnap(b, 44);
-        if(!b.plugin.snapped){
-          const steep = Math.abs(Math.sin(b.angle)) > .3;
-          b.plugin.releases = b.plugin.releases||0;
-          if(steep || b.plugin.releases >= 2){
-            let lt = FLOOR_Y, rt = FLOOR_Y;
-            for(const o of pieces){
-              if(o===b || o.plugin.dead) continue;
-              if(xOverlap(b.bounds.min.x-56,b.bounds.min.x,o.bounds.min.x,o.bounds.max.x)>0) lt=Math.min(lt,o.bounds.min.y);
-              if(xOverlap(b.bounds.max.x,b.bounds.max.x+56,o.bounds.min.x,o.bounds.max.x)>0) rt=Math.min(rt,o.bounds.min.y);
-            }
-            const dir = lt>=rt ? -1 : 1;
-            b.plugin.guided = undefined;
-            Body.setVelocity(b, {x:dir*(3.5+Math.random()*2), y:-8-Math.random()*3});
-            Body.setAngularVelocity(b, -Math.sign(b.angle||dir)*.12);
-            burst(b.position.x, b.position.y, '#FFFFFF', 10);
-          } else {
-            b.plugin.releases++;
-            let solto = false;
-            for(const o of pieces){
-              if(o===b || o.plugin.dead || !o.plugin.snapped) continue;
-              if(xOverlap(b.bounds.min.x-4,b.bounds.max.x+4,o.bounds.min.x,o.bounds.max.x)>0 &&
-                 Math.min(b.bounds.max.y+4,o.bounds.max.y)-Math.max(b.bounds.min.y-4,o.bounds.min.y)>0){
-                unsnap(o, 2); solto = true;
-              }
-            }
-            if(solto){ camShake = Math.max(camShake, 4); sUnsnap(); }
-          }
-        }
+      if(sp < .4 && Math.abs(b.angularVelocity) < .06){
+        b.plugin.restT += dt;
+        if(b.plugin.restT > 90) trySnap(b);
+      } else {
+        b.plugin.restT = 0;
       }
     }
     processMerges();
