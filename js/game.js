@@ -83,7 +83,7 @@ const sOver   = ()=>tone(320,.5,'sawtooth',.08,.4);
 const sParty  = ()=>[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.18,'triangle',.12),i*90));
 
 /* samples (Kenney interface sounds) */
-const aDrop = new Audio('assets/sfx_drop.ogg');   aDrop.preload='auto'; aDrop.volume=.55;
+const aDrop = new Audio('assets/sfx_drop.ogg');   aDrop.preload='auto'; aDrop.volume=.2;
 const aBtn  = new Audio('assets/sfx_button.ogg');  aBtn.preload='auto'; aBtn.volume=.45;
 function sfx(el){ if(muted) return; try{ const n=el.cloneNode(); n.volume=el.volume; n.play(); }catch(e){} }
 
