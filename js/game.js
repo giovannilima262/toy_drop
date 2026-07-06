@@ -795,10 +795,10 @@ function drawPiece(b, now){
     ctx.beginPath(); ctx.roundRect(-p.w/2, -p.h, p.w, p.h, 4); ctx.fill();
     ctx.globalAlpha = 1;
   }
-  // Peças iniciais: ponto branco central
+  // Peças iniciais: retângulo arredondado central
   if(b.plugin.initial){
     ctx.fillStyle = 'rgba(255,255,255,0.65)';
-    ctx.beginPath(); ctx.arc(0, -p.h/2 + 4, 4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(-5, -p.h/2 + 1, 10, 6, 2.5); ctx.fill();
   }
   ctx.restore();
 }
