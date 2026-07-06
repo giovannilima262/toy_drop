@@ -512,6 +512,7 @@ function onCollide(e){
     const a=pair.bodyA, b=pair.bodyB;
     if(a.plugin && b.plugin && a.plugin.tier && a.plugin.tier===b.plugin.tier && !a.plugin.dead && !b.plugin.dead){
       if(a.plugin.initial && b.plugin.initial) continue;   // peças iniciais não mergem entre si
+      if(a.isSensor || b.isSensor) continue;                // não mescla durante queda guiada — só após encaixar
       pendingMerges.push([a,b]);
     }
   }
