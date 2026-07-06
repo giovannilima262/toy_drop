@@ -826,16 +826,7 @@ ctx.clip();
 
   for(const b of [...pieces].sort((a,b)=>b.position.y-a.position.y)) drawPiece(b, now);
 
-  for(const r of rings){
-    const q = (now-r.t0)/260;
-    if(q>=1) continue;
-    ctx.globalAlpha = .7*(1-q);
-    ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2.5;
-    const g = 4+10*q;
-    ctx.beginPath(); ctx.roundRect(r.x-r.w/2-g, r.y-r.h/2-g, r.w+g*2, r.h+g*2, 6); ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-  rings = rings.filter(r=>now-r.t0<260);
+  // rings movidos pro renderFX (sem recorte)
 
   if(cur && state==='play'){
     const p = PIECES[cur], bh = p.h-STUD;
@@ -1045,10 +1036,10 @@ function frame(now){
   drawScene(warn, now);
   renderFX(now);
 }
-function renderFX(now){   // camada full-stage, sem recorte: comemoração E popups saem do painel
+function renderFX(now){   // camada full-stage, sem recorte: comemoração, anéis E popups saem do painel
   fctx.setTransform(1,0,0,1,0,0);
   fctx.clearRect(0,0,fxCanvas.width,fxCanvas.height);
-  if(!fxConf.length && !chars.length && !popups.length) return;
+  if(!fxConf.length && !chars.length && !popups.length && !rings.length) return;
   const scx = BASE_W*PANEL.w/W, scy = BASE_H*PANEL.h/H;
   fctx.setTransform(scx,0,0,scy, BASE_W*PANEL.l, BASE_H*PANEL.t);  // desenha em coords do painel, sobre a cena toda
   for(const p of fxConf){
@@ -1066,6 +1057,18 @@ function renderFX(now){   // camada full-stage, sem recorte: comemoração E pop
     fctx.drawImage(IMGS[c.img],-32,-32,64,64);
     fctx.restore();
   }
+  // anéis de encaixe — expandem pra fora do painel sem corte
+  for(const r of rings){
+    const q = (now-r.t0)/260;
+    if(q>=1) continue;
+    fctx.globalAlpha = .7*(1-q);
+    fctx.strokeStyle = '#FFFFFF'; fctx.lineWidth = 2.5;
+    const g = 4+10*q;
+    fctx.beginPath(); fctx.roundRect(r.x-r.w/2-g, r.y-r.h/2-g, r.w+g*2, r.h+g*2, 6); fctx.stroke();
+    fctx.globalAlpha = 1;
+  }
+  rings = rings.filter(r=>now-r.t0<260);
+
   fctx.textAlign='center'; fctx.textBaseline='middle';
   for(const p of popups){
     const age = now-p.t0, q = Math.min(1,age/160), sc = .5+.5*eob(q);
@@ -1076,17 +1079,17 @@ function renderFX(now){   // camada full-stage, sem recorte: comemoração E pop
     if(p.kind==='combo'){
       fctx.rotate(Math.sin(age/70)*0.05);
       fctx.scale(sc, sc);
-      fctx.font = '900 '+p.size+'px -apple-system, Segoe UI, sans-serif';
+      fctx.font = '400 '+p.size+'px "Lilita One", sans-serif';
       fctx.lineWidth = 7; fctx.strokeStyle = 'rgba(18,38,74,.92)'; fctx.strokeText(p.text,0,0);
       fctx.lineWidth = 3.5; fctx.strokeStyle = '#fff'; fctx.strokeText(p.text,0,0);
       fctx.fillStyle = p.color; fctx.fillText(p.text,0,0);
     } else if(p.kind==='info'){
       fctx.scale(sc, sc);
-      fctx.font = '800 '+p.size+'px -apple-system, sans-serif';
+      fctx.font = '400 '+p.size+'px "Lilita One", sans-serif';
       fctx.lineWidth = 5.5; fctx.strokeStyle = 'rgba(18,38,74,.9)'; fctx.strokeText(p.text,0,0);
       fctx.fillStyle = p.color; fctx.fillText(p.text,0,0);
     } else {
-      fctx.font = '800 '+Math.round(p.size*sc)+'px -apple-system, sans-serif';
+      fctx.font = '400 '+Math.round(p.size*sc)+'px "Lilita One", sans-serif';
       fctx.lineWidth = 4; fctx.strokeStyle = 'rgba(18,38,74,.65)'; fctx.strokeText(p.text,0,0);
       fctx.fillStyle = p.color; fctx.fillText(p.text,0,0);
     }
