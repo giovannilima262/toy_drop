@@ -77,6 +77,7 @@ const sTick   = ()=>tone(1250,.015,'sine',.028);
 const sUnsnap = ()=>tone(420,.05,'square',.035,.6);
 const sHold   = ()=>{ tone(660,.06,'sine',.06,1.4); tone(990,.05,'sine',.04,1.3,.05); };
 const sThud   = ()=>tone(190,.09,'sine',.06,.62);
+const sWarpUp = ()=>tone(280,.14,'sine',.10,2.0);
 const sGoal   = ()=>[659,880,1319].forEach((f,i)=>setTimeout(()=>tone(f,.14,'triangle',.1),i*70));
 const sOver   = ()=>tone(320,.5,'sawtooth',.08,.4);
 const sParty  = ()=>[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.18,'triangle',.12),i*90));
@@ -190,12 +191,28 @@ function forcePlace(b){   // failsafe: peça sem se posicionar há muito tempo �
   const p = PIECES[b.plugin.tier], bh = p.h-STUD;
   const nf = nearestFit(b.plugin.tier, b.position.x, b, GRID*4);   // só vagas perto (evita teleporte)
   if(!nf){
-    burst(b.position.x, b.position.y, '#FFFFFF', 8);
-    Body.setPosition(b, {x:gridX(b.plugin.tier, b.position.x), y:SPAWN_Y});
+    // ── warp de volta pro topo com juice ──
+    const tier = b.plugin.tier, color = PIECES[tier].color;
+    // poof ring no ponto atual
+    rings.push({x:b.position.x, y:b.position.y, w:p.w, h:bh, t0:performance.now()});
+    // partículas da cor da peça + brancas
+    burst(b.position.x, b.position.y, color, 18);
+    burst(b.position.x, b.position.y, '#FFFFFF', 10);
+    // 3 estrelinhas piscando no rastro
+    for(let i=0;i<3;i++) particles.push({
+      x:b.position.x+(Math.random()-.5)*p.w, y:b.position.y-(Math.random()-.5)*bh,
+      vx:(Math.random()-.5)*4, vy:-4-Math.random()*6, life:.9, color:'#FFEE88',
+      size:4+Math.random()*5, rot:0, vr:(Math.random()-.5)*.3
+    });
+    camShake = Math.max(camShake, 4);
+    sWarpUp();
+    // reposiciona no topo com animação de pop-in
+    Body.setPosition(b, {x:gridX(tier, b.position.x), y:SPAWN_Y});
     Body.setVelocity(b, {x:0, y:3});
     Body.setAngle(b, 0); Body.setAngularVelocity(b, 0);
     b.isSensor = false; b.plugin.guided = undefined;
     b.plugin.aliveT = 0; b.plugin.restT = 0; b.plugin.releases = 0; b.plugin.pops = 0;
+    b.plugin.pop = performance.now();   // animação de pop-in (scale-in)
     return;
   }
   const cx = nf.cx, ny = nf.ny;
@@ -969,13 +986,21 @@ function frame(now){
         // 1º tenta encaixar nos arredores
         Body.setPosition(b, {x:Math.max(INNER_L, Math.min(INNER_R, b.position.x)), y:FLOOR_Y - bh/2});
         trySnap(b);
-        // Se não encaixou, manda pro topo
+        // Se não encaixou, manda pro topo com juice
         if(!b.plugin.snapped){
+          // ── warp de volta pro topo ──
+          const color = PIECES[b.plugin.tier].color;
+          rings.push({x:b.position.x, y:b.position.y, w:p.w, h:bh, t0:performance.now()});
+          burst(b.position.x, b.position.y, color, 14);
+          burst(b.position.x, b.position.y, '#FFFFFF', 6);
+          camShake = Math.max(camShake, 3);
+          sWarpUp();
           const nx = INNER_L + 32 + Math.random()*(INNER_W-64);
           Body.setPosition(b, {x:nx, y:SPAWN_Y});
           Body.setVelocity(b, {x:(Math.random()-.5)*3, y:3});
           Body.setAngle(b, 0);
           Body.setAngularVelocity(b, 0);
+          b.plugin.pop = performance.now();
         }
       }
     }
