@@ -915,6 +915,30 @@ function drawBase(){   // base de terra: blocos dirt_top alinhados ao grid
     ctx.drawImage(IMGS.dirt_top, lx, topY-10, 66, 66);
 }
 
+function drawSpark(c, x, y, s, a){   // estrelinha de 4 pontas (brilho do plástico)
+  c.save(); c.translate(x, y); c.globalAlpha = a; c.fillStyle = '#FFFFFF';
+  c.beginPath(); c.moveTo(0,-s);
+  c.quadraticCurveTo(s*.18,-s*.18, s,0); c.quadraticCurveTo(s*.18,s*.18, 0,s);
+  c.quadraticCurveTo(-s*.18,s*.18, -s,0); c.quadraticCurveTo(-s*.18,-s*.18, 0,-s);
+  c.closePath(); c.fill(); c.restore();
+}
+function blisterPath(c, w, bh){   // contorno da peça COM os pinos (coords locais do drawPiece), cantos arredondados
+  const L=-w/2, R=w/2, T=-bh, n=Math.round(w/GRID), sw=19.5, sh=STUD, r=4, r2=2.6;
+  c.beginPath();
+  c.moveTo(L, -r);
+  c.lineTo(L, T+r); c.arcTo(L, T, L+r, T, r);
+  for(let k=0;k<n;k++){   // sobe e desce cada pino (medido dos sprites: 19.5px a cada 32)
+    const a=L+16+k*GRID-sw/2, b2=a+sw;
+    c.lineTo(a-r2, T); c.arcTo(a, T, a, T-r2, r2);
+    c.lineTo(a, T-sh+r2); c.arcTo(a, T-sh, a+r2, T-sh, r2);
+    c.lineTo(b2-r2, T-sh); c.arcTo(b2, T-sh, b2, T-sh+r2, r2);
+    c.lineTo(b2, T-r2); c.arcTo(b2, T, b2+r2, T, r2);
+  }
+  c.lineTo(R-r, T); c.arcTo(R, T, R, T+r, r);
+  c.lineTo(R, -r); c.arcTo(R, 0, R-r, 0, r);
+  c.lineTo(L+r, 0); c.arcTo(L, 0, L, -r, r);
+  c.closePath();
+}
 function drawPiece(b, now){
   const p = PIECES[b.plugin.tier], bh = p.h-STUD;
   let sx = 1, sy = 1;
@@ -940,10 +964,31 @@ function drawPiece(b, now){
     ctx.beginPath(); ctx.roundRect(-p.w/2, -p.h, p.w, p.h, 4); ctx.fill();
     ctx.globalAlpha = 1;
   }
-  // Peças iniciais: retângulo arredondado central (só depois do pop-in)
+  // Peças iniciais: embaladas em plástico (blister moldado, com os pinos) — mesclar "liberta" o brinquedo
   if(b.plugin.initial && !b.plugin.pop){
-    ctx.fillStyle = 'rgba(255,255,255,0.65)';
-    ctx.beginPath(); ctx.roundRect(-5, -p.h/2 + 1, 10, 6, 2.5); ctx.fill();
+    ctx.save();
+    blisterPath(ctx, p.w, bh);
+    ctx.clip();   // tudo abaixo pinta a peça INTEIRA, pinos inclusos — sem pixel de fora
+    const g = ctx.createLinearGradient(-p.w/2, -p.h, p.w/2, 0);   // varredura diagonal do plástico
+    g.addColorStop(0,'rgba(255,255,255,.32)'); g.addColorStop(.32,'rgba(255,255,255,.07)');
+    g.addColorStop(.52,'rgba(255,255,255,.26)'); g.addColorStop(.72,'rgba(255,255,255,.05)');
+    g.addColorStop(1,'rgba(255,255,255,.15)');
+    ctx.fillStyle = g; ctx.fillRect(-p.w/2, -p.h, p.w, p.h);
+    const rg = ctx.createRadialGradient(-p.w/2+6, -bh+5, 0, -p.w/2+6, -bh+5, Math.min(26, p.w*.5));   // bolha de luz
+    rg.addColorStop(0,'rgba(255,255,255,.28)'); rg.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle = rg; ctx.fillRect(-p.w/2, -p.h, p.w, p.h);
+    ctx.fillStyle = 'rgba(255,255,255,.32)';   // brilho no topo de cada pino
+    for(let k=0;k<Math.round(p.w/GRID);k++){
+      ctx.beginPath(); ctx.ellipse(-p.w/2+16+k*GRID, -p.h+2.1, 7, 1.6, 0, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+    ctx.lineJoin = 'round';
+    blisterPath(ctx, p.w, bh);   // parede do plástico contornando corpo + pinos
+    ctx.lineWidth = Math.min(2.4, bh*.15); ctx.strokeStyle = 'rgba(205,235,255,.45)'; ctx.stroke();
+    ctx.lineWidth = .9; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.stroke();   // fio de luz
+    const tw = .5+.5*Math.sin(now/650 + b.position.x*.13 + b.position.y*.09);   // cintila defasado por peça
+    const ss = Math.min(6, bh*.32);
+    drawSpark(ctx, p.w/2 - ss - 2.5, -bh + ss + 2.5, ss*(.6+.5*tw), .3+.65*tw);
   }
   ctx.restore();
 }
