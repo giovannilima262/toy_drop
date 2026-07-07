@@ -482,9 +482,14 @@ function doMerge(a,b){
     sMerge(nt);
   }
   if(combo>1){
-    const cc = ['#FFD54A','#FFD54A','#FF9F40','#FF6B6B','#FF4FA3'];
-    popups.push({x:mx, y:my-52, text:'COMBO ×'+combo, kind:'combo', life:1.15,
-      size:24+Math.min(combo,5)*2.5, color:cc[Math.min(combo-2,4)], t0:now});
+    const cc = ['#FFE88C','#FFD54A','#FF9F40','#FF6B6B','#FF4FA3','#E040FB'];
+    const ci = Math.min(combo-2, 5);
+    const sz = 28 + Math.min(combo, 8) * 3;
+    popups.push({x:mx, y:my-48, text:'COMBO ×'+combo, kind:'combo', life:1.5 + combo*0.15,
+      size:sz, color:cc[ci], t0:now});
+    // Partículas extras para combos maiores
+    if(combo>=3) burstFx(mx, my-30, cc[ci], 8 + combo*3);
+    if(combo>=5){ camShake = Math.max(camShake, combo*0.7); targetTS = Math.max(.3, .9 - combo*.08); setTimeout(()=>{ targetTS = 1; }, 300); }
   }
   checkGoal();
   supportCascade();
