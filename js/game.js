@@ -638,7 +638,12 @@ function nextBoard(){   // novo castelo de peças marcadas — score e gemas fic
 /* ---------- HUD ---------- */
 const $ = id=>document.getElementById(id);
 function imgSrc(t){ return 'assets/'+PIECES[t].img+'.png'; }
-function syncScore(){ $('score').textContent = score.toLocaleString('pt-BR'); if($('charsCount')) $('charsCount').textContent = charsCollected.toLocaleString('pt-BR'); }
+let _prevScore = 0, _prevChars = 0;
+function bustPill(el, cls){ if(!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+function syncScore(){
+  if(score !== _prevScore){ $('score').textContent = score.toLocaleString('pt-BR'); bustPill($('score').parentElement, 'bust'); _prevScore = score; }
+  if($('charsCount') && charsCollected !== _prevChars){ $('charsCount').textContent = charsCollected.toLocaleString('pt-BR'); bustPill($('charsCount').parentElement, 'bust-char'); _prevChars = charsCollected; }
+}
 function markedByTier(){
   const per = [0,0,0,0,0,0,0,0];
   for(const b of pieces) if(b.plugin.initial && !b.plugin.dead) per[b.plugin.tier]++;
@@ -883,7 +888,7 @@ function showWinOverlay(){
 function restart(){
   for(const b of [...pieces]) removeBody(b);
   particles=[]; popups=[]; chars=[]; rings=[]; fxConf=[]; pendingMerges=[];
-  score=0; combo=0; drops=0; dangerT=0; usedShake=false; camShake=0; targetTS=1; timeScale=1; gameClock=0; goalCelebUntil=0;
+  score=0; _prevScore=0; combo=0; drops=0; dangerT=0; usedShake=false; camShake=0; targetTS=1; timeScale=1; gameClock=0; goalCelebUntil=0;
   if(winDismissTimer){ clearTimeout(winDismissTimer); winDismissTimer = null; }
   stash=null; holdUsed=false;
   discovered = [true,true,false,false,false,false,false,false];
