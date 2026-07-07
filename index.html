@@ -23,7 +23,7 @@
   .ico-svg{width:calc(var(--u)*4);height:calc(var(--u)*4);fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 
   /* ═══ Barra superior ═══ */
-  #topbar{position:absolute;top:2.6%;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:calc(var(--u)*2.5);pointer-events:none;z-index:5}
+  #topbar{position:absolute;top:2.6%;left:55%;transform:translateX(-50%);display:flex;align-items:center;gap:calc(var(--u)*2.5);pointer-events:none;z-index:5}
   #topbar>*{pointer-events:auto}
 
   /* Botões de ícone (gear, pause) — vidro com borda */
@@ -38,8 +38,8 @@
   .pill b{font-size:calc(var(--u)*3.4);font-weight:800;letter-spacing:.02em;text-shadow:0 1px 2px rgba(0,0,0,.15)}
 
   /* Botão + nas gemas */
-  .plus{position:absolute;right:calc(var(--u)*-1.2);top:50%;transform:translateY(-50%);width:calc(var(--u)*3.4);height:calc(var(--u)*3.4);border-radius:50%;background:linear-gradient(135deg,#43d66c,#2eb84d);color:#fff;border:2px solid rgba(255,255,255,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 calc(var(--u)*0.35) 0 #1a8c33, 0 calc(var(--u)*0.3) calc(var(--u)*1) rgba(30,140,60,.35);transition:transform .1s;z-index:1}
-  .plus:active{transform:translateY(-50%) translateY(15%)}
+  .plus{position:absolute;right:calc(var(--u)*-1.2);top:55%;transform:translateY(-50%);width:calc(var(--u)*3.4);height:calc(var(--u)*3.4);border-radius:50%;background:linear-gradient(135deg,#43d66c,#2eb84d);color:#fff;border:2px solid rgba(255,255,255,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 calc(var(--u)*0.35) 0 #1a8c33, 0 calc(var(--u)*0.3) calc(var(--u)*1) rgba(30,140,60,.35);transition:transform .1s;z-index:1}
+  .plus:active{transform:translateY(-55%) translateY(15%)}
   .plus .ico-svg{width:calc(var(--u)*2.4);height:calc(var(--u)*2.4);stroke-width:3}
 
   /* ═══ Bandeja de objetivo ═══ */
@@ -51,9 +51,9 @@
   .gslot.done b{background:#37c463;color:#fff}
 
   /* ═══ Botão chacoalhar ═══ */
-  #shakeBtn{position:absolute;left:50%;top:11%;transform:translateX(-50%) translateY(calc(var(--u)*11));opacity:0;pointer-events:none;background:linear-gradient(180deg,#FFE88C 0%,#FFCC2F 40%,#F5A623 100%);border:0;color:#4a2c00;border-radius:calc(var(--u)*3.5);padding:calc(var(--u)*1.5) calc(var(--u)*4.5);font-size:calc(var(--u)*2.9);font-weight:800;font-family:"Lilita One",sans-serif;cursor:pointer;box-shadow:0 calc(var(--u)*1.8) calc(var(--u)*4) rgba(0,0,0,.25), 0 calc(var(--u)*0.6) calc(var(--u)*1.5) rgba(0,0,0,.18);z-index:1;letter-spacing:.05em;display:flex;align-items:center;gap:calc(var(--u)*1.2);transition:opacity .4s,transform .4s cubic-bezier(.34,1.56,.64,1),box-shadow .4s}
-  #shakeBtn.visible{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);box-shadow:0 calc(var(--u)*2.2) calc(var(--u)*5) rgba(0,0,0,.28), 0 calc(var(--u)*0.8) calc(var(--u)*2) rgba(0,0,0,.2), 0 0 calc(var(--u)*4) rgba(245,166,35,.35)}
-  #shakeBtn:active{transform:translateX(-50%) translateY(5%)!important;box-shadow:0 calc(var(--u)*0.6) calc(var(--u)*1.5) rgba(0,0,0,.2), 0 calc(var(--u)*0.2) calc(var(--u)*0.6) rgba(0,0,0,.15)}
+  #shakeBtn{position:absolute;left:55%;top:11%;transform:translateX(-50%) translateY(calc(var(--u)*11));opacity:0;pointer-events:none;background:linear-gradient(180deg,#FFE88C 0%,#FFCC2F 40%,#F5A623 100%);border:0;color:#4a2c00;border-radius:calc(var(--u)*3.5);padding:calc(var(--u)*1.5) calc(var(--u)*4.5);font-size:calc(var(--u)*2.9);font-weight:800;font-family:"Lilita One",sans-serif;cursor:pointer;box-shadow:0 calc(var(--u)*1.8) calc(var(--u)*4) rgba(0,0,0,.25), 0 calc(var(--u)*0.6) calc(var(--u)*1.5) rgba(0,0,0,.18);z-index:1;letter-spacing:.05em;display:flex;align-items:center;gap:calc(var(--u)*1.2);transition:opacity .4s,transform .4s cubic-bezier(.34,1.56,.64,1),box-shadow .4s}
+  #shakeBtn.visible{opacity:1;pointer-events:auto;transform:translateX(-55%) translateY(0);box-shadow:0 calc(var(--u)*2.2) calc(var(--u)*5) rgba(0,0,0,.28), 0 calc(var(--u)*0.8) calc(var(--u)*2) rgba(0,0,0,.2), 0 0 calc(var(--u)*4) rgba(245,166,35,.35)}
+  #shakeBtn:active{transform:translateX(-55%) translateY(5%)!important;box-shadow:0 calc(var(--u)*0.6) calc(var(--u)*1.5) rgba(0,0,0,.2), 0 calc(var(--u)*0.2) calc(var(--u)*0.6) rgba(0,0,0,.15)}
   #shakeBtn .ico-svg{width:calc(var(--u)*3.4);height:calc(var(--u)*3.4)}
   .shake-inner{display:flex;align-items:center;gap:calc(var(--u)*1.2)}
 
@@ -63,15 +63,36 @@
   #startOverlay h1{font:800 calc(var(--u)*11) "Lilita One",sans-serif;color:#FFD54A;text-shadow:0 calc(var(--u)*0.8) 0 rgba(160,100,15,.5), 0 calc(var(--u)*0.4) calc(var(--u)*2.5) rgba(0,0,0,.4), 0 0 calc(var(--u)*5) rgba(255,200,50,.25);margin:0 0 calc(var(--u)*1.5);letter-spacing:.06em;animation:titleFloat 3s ease-in-out infinite}
   @keyframes titleFloat{
     0%,100%{transform:translateY(0)}
-    50%{transform:translateY(calc(var(--u)*-1.2))}
+    55%{transform:translateY(calc(var(--u)*-1.2))}
   }
   #startOverlay .sub{font:400 calc(var(--u)*2.8) "Lilita One",sans-serif;color:rgba(255,255,255,.7);text-shadow:0 calc(var(--u)*0.2) calc(var(--u)*0.6) rgba(0,0,0,.3);margin:0 0 calc(var(--u)*6);letter-spacing:.06em}
+  /* Personagens espalhados em volta do título */
+  #titleArea{position:relative;display:flex;flex-direction:column;align-items:center}
+  .char-wrap{position:absolute;pointer-events:none;filter:drop-shadow(0 calc(var(--u)*0.7) calc(var(--u)*1.4) rgba(0,0,0,.4))}
+  .char-wrap{position:absolute;pointer-events:none;filter:drop-shadow(0 calc(var(--u)*0.7) calc(var(--u)*1.4) rgba(0,0,0,.4))}
+  .char-wrap img{display:block;width:100%;height:100%;object-fit:contain}
+  @keyframes charJump{
+    0%,100%{transform:translateY(0) scale(1)}
+    30%{transform:translateY(-6px) scale(1.04)}
+    55%{transform:translateY(2px) scale(.97)}
+    80%{transform:translateY(-3px) scale(1.02)}
+  }
+  .c1{top:calc(var(--u)*-14);left:calc(var(--u)*-16);width:calc(var(--u)*13);height:calc(var(--u)*13);transform:rotate(-14deg)}
+  .c1 img{animation:charJump 4s ease-in-out infinite 0s}
+  .c2{top:calc(var(--u)*-16);right:calc(var(--u)*-14);width:calc(var(--u)*10);height:calc(var(--u)*10);transform:rotate(20deg)}
+  .c2 img{animation:charJump 4.6s ease-in-out infinite 0.6s}
+  .c3{bottom:calc(var(--u)*6);right:calc(var(--u)*-18);width:calc(var(--u)*11);height:calc(var(--u)*11);transform:rotate(-8deg)}
+  .c3 img{animation:charJump 3.6s ease-in-out infinite 1s}
+  .c4{bottom:calc(var(--u)*8);left:calc(var(--u)*-18);width:calc(var(--u)*14);height:calc(var(--u)*14);transform:rotate(10deg)}
+  .c4 img{animation:charJump 4.4s ease-in-out infinite 1.6s}
+  .c5{top:calc(var(--u)*-8);right:calc(var(--u)*-20);width:calc(var(--u)*9);height:calc(var(--u)*9);transform:rotate(-30deg)}
+  .c5 img{animation:charJump 3.8s ease-in-out infinite 2.2s}
   #playBtn{width:calc(var(--u)*17);height:calc(var(--u)*17);border-radius:50%;background:linear-gradient(180deg,#4de073,#2eb84d);border:calc(var(--u)*0.7) solid rgba(255,255,255,.3);color:#fff;cursor:pointer;box-shadow:0 calc(var(--u)*1.2) 0 #1a8c33, 0 calc(var(--u)*0.7) calc(var(--u)*3.5) rgba(0,0,0,.4), 0 0 calc(var(--u)*6) rgba(46,184,77,.35);display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s;animation:playPulse 2.2s ease-in-out infinite}
   #playBtn:active{transform:scale(.92);box-shadow:0 calc(var(--u)*0.5) 0 #1a8c33, 0 calc(var(--u)*0.3) calc(var(--u)*2) rgba(0,0,0,.35)}
   #playBtn .ico-svg{width:calc(var(--u)*7);height:calc(var(--u)*7);stroke:#fff;stroke-width:2.5;fill:#fff;margin-left:calc(var(--u)*1)}
   @keyframes playPulse{
     0%,100%{box-shadow:0 calc(var(--u)*1.2) 0 #1a8c33, 0 calc(var(--u)*0.7) calc(var(--u)*3.5) rgba(0,0,0,.4), 0 0 calc(var(--u)*6) rgba(46,184,77,.35)}
-    50%{box-shadow:0 calc(var(--u)*1.2) 0 #1a8c33, 0 calc(var(--u)*0.7) calc(var(--u)*5) rgba(0,0,0,.5), 0 0 calc(var(--u)*10) rgba(46,184,77,.55)}
+    55%{box-shadow:0 calc(var(--u)*1.2) 0 #1a8c33, 0 calc(var(--u)*0.7) calc(var(--u)*5) rgba(0,0,0,.5), 0 0 calc(var(--u)*10) rgba(46,184,77,.55)}
   }
 
   /* ═══ Overlay / Modais ═══ */
@@ -187,8 +208,15 @@
 </div></div>
 
 <div id="startOverlay">
-  <h1>TOY DROP</h1>
-  <p class="sub">junte blocos iguais!</p>
+  <div id="titleArea">
+    <span class="char-wrap c1"><img src="assets/char_a.png" alt=""></span>
+    <span class="char-wrap c2"><img src="assets/char_b.png" alt=""></span>
+    <span class="char-wrap c3"><img src="assets/char_c.png" alt=""></span>
+    <span class="char-wrap c4"><img src="assets/char_d.png" alt=""></span>
+    <span class="char-wrap c5"><img src="assets/char_e.png" alt=""></span>
+    <h1>TOY DROP</h1>
+    <p class="sub">junte blocos iguais!</p>
+  </div>
   <button id="playBtn" aria-label="jogar">
     <svg class="ico-svg"><use href="#ico-play"/></svg>
   </button>
