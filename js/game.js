@@ -1280,8 +1280,16 @@ function frame(now){
     p.life-=dt/(p.landed?700:1800);   // some aos poucos junto com a ação — mais rápido depois do 1º toque
   }
   popups = popups.filter(p=>p.life>0 && p.y<H+340);
+  // ═══ limites visíveis do fxCanvas em coords de jogo ═══
+  // fxCanvas mapeia game→stage: offset=BASE_W*PANEL.l, scale=BASE_W*PANEL.w/W
+  // Visível: x ∈ [-207, 687] (game coords); margem de segurança p/ sprites de 64px
+  const VIS_L = -175, VIS_R = 655;
+
   for(const c of chars){       // arco pra fora do painel + quicadas na base (diminuindo)
     c.x+=c.vx; c.y+=c.vy; c.vy+=.30; c.rot+=c.vr;
+    // Rebate nas bordas visíveis do fxCanvas (evita clipping em landscape)
+    if(c.x < VIS_L) { c.x = VIS_L; c.vx = Math.abs(c.vx) * 0.55; c.vr = Math.abs(c.vr) * 0.6; }
+    if(c.x > VIS_R) { c.x = VIS_R; c.vx = -Math.abs(c.vx) * 0.55; c.vr = -Math.abs(c.vr) * 0.6; }
     if(c.vy>0 && c.y>=c.y0 && c.bounces<2){
       c.y=c.y0; c.vy=-c.vy*0.5; c.vx*=0.7; c.vr*=0.55; c.bounces++;
       c.squashT=last;
@@ -1291,7 +1299,12 @@ function frame(now){
     }
   }
   chars = chars.filter(c=>c.y<H+320);
-  for(const p of fxConf){ p.x+=p.vx; p.y+=p.vy; p.vy+=.22; p.rot+=p.vr; p.life-=dt/1200; }
+  for(const p of fxConf){
+    p.x+=p.vx; p.y+=p.vy; p.vy+=.22; p.rot+=p.vr; p.life-=dt/1200;
+    // Rebate nas bordas visíveis (evita clipping do confete em landscape)
+    if(p.x < VIS_L) { p.x = VIS_L; p.vx = Math.abs(p.vx) * 0.45; }
+    if(p.x > VIS_R) { p.x = VIS_R; p.vx = -Math.abs(p.vx) * 0.45; }
+  }
   fxConf = fxConf.filter(p=>p.life>0 && p.y<H+260);
   camShake = Math.max(0, camShake-dt*.014);
 
