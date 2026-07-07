@@ -1205,7 +1205,9 @@ function loop(now){ if(window.__freeze){ drawScene(false, now); renderFX(now); }
 /* ---------- Resize ---------- */
 function fit(){
   const s = innerHeight/BASE_H;   // altura soberana: portrait corta laterais; landscape centraliza a coluna
-  stage.classList.toggle('landscape', innerWidth/innerHeight > BASE_W/BASE_H);   // um fundo OU o outro
+  const isLand = innerWidth/innerHeight > BASE_W/BASE_H;
+  stage.classList.toggle('landscape', isLand);   // um fundo OU o outro
+  document.body.classList.toggle('landscape', isLand);
   const sw = BASE_W*s, sh = BASE_H*s;
   stage.style.width = sw+'px'; stage.style.height = sh+'px';
   const su = (sw/100)+'px';
