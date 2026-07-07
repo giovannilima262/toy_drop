@@ -795,16 +795,22 @@ function showWinOverlay(){
     '</div>';
   overlay.classList.remove('hiding');
   overlay.style.display='flex';
+  let dismissed = false;
   const dismiss = ()=>{
-    if(winDismissTimer){ clearTimeout(winDismissTimer); winDismissTimer = null; }
+    if(dismissed) return;
+    dismissed = true;
     overlay.onclick = null;
-    hideOverlay();
-    if(state!=='over') nextBoard();
+    // Anima a saída, depois avança
+    overlay.classList.add('hiding');
+    setTimeout(()=>{
+      overlay.style.display='none';
+      overlay.classList.remove('hiding');
+      if(state!=='over') nextBoard();
+    }, 350);
   };
   overlay.onclick = (e)=>{
     if(e.target === overlay || e.target.closest('.win-wrap')) dismiss();
   };
-  winDismissTimer = setTimeout(dismiss, 5000);
 }
 function restart(){
   for(const b of [...pieces]) removeBody(b);
