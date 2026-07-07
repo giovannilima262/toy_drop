@@ -668,8 +668,11 @@ function dropCur(){
 
 /* ---------- Overlays ---------- */
 const overlay = $('overlay');
-function showOverlay(html){ overlay.innerHTML = '<div class="card2">'+html+'</div>'; overlay.style.display='flex'; }
-function hideOverlay(){ overlay.style.display='none'; }
+function showOverlay(html){ overlay.classList.remove('hiding'); overlay.innerHTML = '<div class="card2">'+html+'</div>'; overlay.style.display='flex'; }
+function hideOverlay(){
+  overlay.classList.add('hiding');
+  setTimeout(()=>{ overlay.style.display='none'; overlay.classList.remove('hiding'); }, 350);
+}
 
 function fakeAd(kind, cb){
   const prev = state; state = 'ad';
@@ -699,17 +702,21 @@ function pause(){
   state = 'paused';
   setPauseIcon('ico-play');
   const soundLabel = muted ? 'Som Desligado' : 'Som Ligado';
+  const chars = ['a','b','c','d'];
   overlay.innerHTML =
-    '<div class="pause-card">'+
-      '<div class="pause-icon"><svg class="ico-svg"><use href="#ico-pause"/></svg></div>'+
-      '<h1>PAUSADO</h1>'+
-      '<div class="btn-row">'+
-        '<button class="btn play-btn" id="resumeBtn"><svg class="ico-svg"><use href="#ico-play"/></svg> Continuar</button>'+
-        '<button class="btn sound-btn" id="muteBtn"><svg class="ico-svg"><use href="#'+(muted?'ico-speaker-mute':'ico-speaker')+'"/></svg> '+soundLabel+'</button>'+
-        '<button class="btn restart-btn" id="restartBtn"><svg class="ico-svg"><use href="#ico-restart"/></svg> Reiniciar</button>'+
+    '<div class="pause-wrap">'+
+      '<div class="pause-card">'+
+        '<h1>PAUSADO</h1>'+
+        '<div class="btn-row">'+
+          '<button class="btn play-btn" id="resumeBtn"><svg class="ico-svg"><use href="#ico-play"/></svg> Continuar</button>'+
+          '<button class="btn sound-btn" id="muteBtn"><svg class="ico-svg"><use href="#'+(muted?'ico-speaker-mute':'ico-speaker')+'"/></svg> '+soundLabel+'</button>'+
+          '<button class="btn restart-btn" id="restartBtn"><svg class="ico-svg"><use href="#ico-restart"/></svg> Reiniciar</button>'+
+        '</div>'+
+        '<div class="tips">arraste para mirar · solte para largar<br>junte blocos iguais para fundir!</div>'+
       '</div>'+
-      '<div class="tips">arraste para mirar · solte para largar<br>junte blocos iguais para fundir!</div>'+
+      chars.map((c,i)=>'<span class="pause-char pc'+(i+1)+'"><img src="assets/char_'+c+'.png" alt=""></span>').join('')+
     '</div>';
+  overlay.classList.remove('hiding');
   overlay.style.display='flex';
   $('resumeBtn').addEventListener('click', resume);
   $('muteBtn').addEventListener('click', ()=>{
@@ -1302,6 +1309,7 @@ loadImages().then(()=>{
   playBtn.addEventListener('click', ()=>{
     audioInit();
     state = 'play';
+    stage.classList.add('playing');
     startOverlay.classList.add('hiding');
     setTimeout(()=>{ startOverlay.remove(); }, 500);
     SDK.gameplayStart();
