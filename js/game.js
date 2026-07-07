@@ -11,7 +11,7 @@ const DANGER_Y = 210, SPAWN_Y = 150;
 const STUD = 8;               // altura real do pino nos sprites
 const GRID = 32;              // passo real do pino (t1 = 1 pino de 32px)
 const MERGE_WINDOW = 1400;
-const NEXT_DELAY = 2500;
+const NEXT_DELAY = 500;
 const SPAWN_POOL = [1,1,1,1,2,2,2,3,3];
 const MAX_TIER = 7, CELEBRATE_PTS = 400;
 
@@ -179,30 +179,11 @@ function nearestFit(tier, fromX, self, maxDist){   // coluna que comporta a peç
   }
   return best;
 }
-function bestFitBottomUp(tier, fromX, self, maxDist){   // como nearestFit, mas prioriza posição mais baixa (ny maior); desempate por distância horizontal
-  const p = PIECES[tier], bh = p.h-STUD;
-  let best = null, bestY = -1e9, bestDist = 1e9;
-  const kMax = (INNER_W-p.w)/GRID;
-  for(let k=0;k<=kMax;k++){
-    const cx = INNER_L + p.w/2 + k*GRID;
-    if(maxDist!=null && Math.abs(cx-fromX) > maxDist) continue;
-    const ny = columnTop(cx, p.w, self) - bh/2;
-    if(!fits(self, cx, ny, p.w, bh)) continue;
-    // prioridade: mais baixo (ny maior), desempate por distância horizontal
-    if(ny > bestY || (Math.abs(ny-bestY) < 1 && Math.abs(cx-fromX) < bestDist)){
-      bestY = ny; bestDist = Math.abs(cx-fromX); best = {cx, ny};
-    }
-  }
-  return best;
-}
-function forcePlace(b){   // failsafe: peça sem se posicionar há muito tempo → vaga mais baixa possível; sem vaga nenhuma, volta pro topo
+function forcePlace(b){   // failsafe: peça sem se posicionar há muito tempo → vaga próxima que caiba; sem vaga nos arredores, volta pro topo e cai de novo
   const p = PIECES[b.plugin.tier], bh = p.h-STUD;
-  // 1º tenta vagas próximas, priorizando de baixo pra cima
-  let nf = bestFitBottomUp(b.plugin.tier, b.position.x, b, GRID*4);
-  // 2º se não achou perto, busca em todas as colunas (ainda de baixo pra cima)
-  if(!nf) nf = bestFitBottomUp(b.plugin.tier, b.position.x, b, null);
+  const nf = nearestFit(b.plugin.tier, b.position.x, b, GRID*4);   // só vagas perto (evita teleporte)
   if(!nf){
-    // ── nenhuma vaga no tabuleiro: warp de volta pro topo com juice ──
+    // ── warp de volta pro topo com juice ──
     const tier = b.plugin.tier, color = PIECES[tier].color;
     // poof ring no ponto atual
     rings.push({x:b.position.x, y:b.position.y, w:p.w, h:bh, t0:performance.now()});
@@ -251,9 +232,9 @@ function trySnap(b, tol){
     if(Math.abs(ty-b.position.y) > tol || Math.abs(tx-b.position.x) > p.w/2+GRID*0.8) continue;
     if(fits(b, tx, ty, p.w, bh)){ const d = Math.abs(tx-b.position.x); if(d<bestD){ bestD=d; cx=tx; ny=ty; ok=true; } }
   }
-  // Se nenhuma vaga próxima couber → procura nos arredores, priorizando de baixo pra cima
+  // Se nenhuma vaga próxima couber → procura só nos arredores (±4 pinos)
   if(!ok){
-    const nf = bestFitBottomUp(b.plugin.tier, b.position.x, b, GRID*4);
+    const nf = nearestFit(b.plugin.tier, b.position.x, b, GRID*4);
     if(nf){ cx = nf.cx; ny = nf.ny; ok = true; }
   }
   // Sem vaga nos arredores: não força encaixe nem teleporta — deixa a física agir;
@@ -386,7 +367,7 @@ function unstick(dt){
     }
     if(!pen){ b.plugin.stuckT = 0; continue; }
     b.plugin.stuckT = (b.plugin.stuckT||0)+dt;
-    if(b.plugin.stuckT > 2250){
+    if(b.plugin.stuckT > 250){
       b.plugin.stuckT = 0;
       b.plugin.pops = (b.plugin.pops||0)+1;
       if(b.plugin.pops > 5){ unsnap(pen, 3); b.plugin.pops = 0; }
@@ -485,8 +466,8 @@ function doMerge(a,b){
         if(tx!==base && fits(null, tx, ny0, np.w, nbh)){ const d = Math.abs(tx-mx); if(d<bestD){ bestD=d; nx=tx; ok=true; } }
       }
     }
-    if(!ok){                                    // sem vaga imediata: vaga mais baixa nos arredores (±4 pinos)
-      const nf = bestFitBottomUp(nt, mx, null, GRID*4);
+    if(!ok){                                    // sem vaga imediata: vaga mais próxima nos arredores (±4 pinos), assentada no topo da coluna
+      const nf = nearestFit(nt, mx, null, GRID*4);
       if(nf){ nx = nf.cx; ny = nf.ny; ok = true; }
     }
     if(!ok){                                    // nada nos arredores: nasce solta no ponto do merge; física acomoda, e se o tempo passar o failsafe manda pro topo
@@ -807,10 +788,10 @@ function dangerCheck(dt){
   for(const b of pieces){
     if(!b.plugin.snapped) continue;
     if(b.bounds.min.y < DANGER_Y+90) warn = true;
-    if(b.bounds.min.y < DANGER_Y && gameClock-b.plugin.bornT>3800) hot = true;
+    if(b.bounds.min.y < DANGER_Y && gameClock-b.plugin.bornT>1800) hot = true;
   }
   dangerT = hot ? dangerT+dt : Math.max(0, dangerT-dt*2);
-  if(dangerT > 3400){
+  if(dangerT > 1400){
     const culpado = pieces.find(b=>b.plugin.snapped && b.bounds.min.y < DANGER_Y);
     if(culpado) doGameOver(); else dangerT = 0;
   }
@@ -1069,13 +1050,13 @@ function frame(now){
       if(b.plugin.snapped) continue;
       if(b.plugin.guided===undefined){   // failsafe: não assentou em 3,5s → vaga próxima que caiba, senão manda pro topo
         b.plugin.aliveT = (b.plugin.aliveT||0)+dt;
-        if(b.plugin.aliveT > 5500){ forcePlace(b); continue; }
+        if(b.plugin.aliveT > 3500){ forcePlace(b); continue; }
       }
       const sp = Math.hypot(b.velocity.x, b.velocity.y);
       if(sp<.4 && Math.abs(b.angularVelocity)<.06) b.plugin.restT += dt; else b.plugin.restT = 0;
-      if(b.plugin.restT > 2110) trySnap(b);
+      if(b.plugin.restT > 110) trySnap(b);
       if(sp < .8) b.plugin.limboT = (b.plugin.limboT||0)+dt; else b.plugin.limboT = 0;
-      if(!b.plugin.snapped && b.plugin.limboT > 3200){
+      if(!b.plugin.snapped && b.plugin.limboT > 1200){
         b.plugin.limboT = 0;
         trySnap(b, 44);
         if(!b.plugin.snapped){
@@ -1132,34 +1113,21 @@ function frame(now){
         // 1º tenta encaixar nos arredores
         Body.setPosition(b, {x:Math.max(INNER_L, Math.min(INNER_R, b.position.x)), y:FLOOR_Y - bh/2});
         trySnap(b);
-        // Se não encaixou, busca vaga mais baixa em qualquer coluna
+        // Se não encaixou, manda pro topo com juice
         if(!b.plugin.snapped){
-          const bf = bestFitBottomUp(b.plugin.tier, b.position.x, b, null);
-          if(bf){
-            // encaixa na melhor posição (mais baixa, mais próxima)
-            Body.setPosition(b, {x:bf.cx, y:bf.ny});
-            Body.setAngle(b, 0); Body.setVelocity(b, {x:0,y:0}); Body.setAngularVelocity(b, 0);
-            Body.setStatic(b, true);
-            b.plugin.snapped = true;
-            b.plugin.releases = 0; b.plugin.pops = 0; b.plugin.aliveT = 0;
-            b.plugin.land = performance.now();
-            rings.push({x:bf.cx, y:bf.ny, w:p.w, h:bh, t0:performance.now()});
-            adjacencyCheck(b);
-          } else {
-            // ── nenhuma vaga no tabuleiro: warp de volta pro topo ──
-            const color = PIECES[b.plugin.tier].color;
-            rings.push({x:b.position.x, y:b.position.y, w:p.w, h:bh, t0:performance.now()});
-            burst(b.position.x, b.position.y, color, 14);
-            burst(b.position.x, b.position.y, '#FFFFFF', 6);
-            camShake = Math.max(camShake, 3);
-            sWarpUp();
-            const nx = INNER_L + 32 + Math.random()*(INNER_W-64);
-            Body.setPosition(b, {x:nx, y:SPAWN_Y});
-            Body.setVelocity(b, {x:(Math.random()-.5)*3, y:3});
-            Body.setAngle(b, 0);
-            Body.setAngularVelocity(b, 0);
-            b.plugin.pop = performance.now();
-          }
+          // ── warp de volta pro topo ──
+          const color = PIECES[b.plugin.tier].color;
+          rings.push({x:b.position.x, y:b.position.y, w:p.w, h:bh, t0:performance.now()});
+          burst(b.position.x, b.position.y, color, 14);
+          burst(b.position.x, b.position.y, '#FFFFFF', 6);
+          camShake = Math.max(camShake, 3);
+          sWarpUp();
+          const nx = INNER_L + 32 + Math.random()*(INNER_W-64);
+          Body.setPosition(b, {x:nx, y:SPAWN_Y});
+          Body.setVelocity(b, {x:(Math.random()-.5)*3, y:3});
+          Body.setAngle(b, 0);
+          Body.setAngularVelocity(b, 0);
+          b.plugin.pop = performance.now();
         }
       }
     }
