@@ -107,6 +107,11 @@
     55%{transform:translateY(calc(var(--u)*-1.2))}
   }
   #startOverlay .sub{font:400 calc(var(--u)*2.8) "Lilita One",sans-serif;color:rgba(255,255,255,.7);text-shadow:0 calc(var(--u)*0.2) calc(var(--u)*0.6) rgba(0,0,0,.3);margin:0 0 calc(var(--u)*6);letter-spacing:.06em;animation:subIn .5s .3s cubic-bezier(.34,1.56,.64,1) both}
+	  #startOverlay .start-stats{position:absolute;top:calc(var(--u)*4);left:50%;transform:translateX(-50%);display:flex;gap:calc(var(--u)*2.5);animation:subIn .5s .4s cubic-bezier(.34,1.56,.64,1) both}
+	  #startOverlay .start-stat{display:flex;align-items:center;gap:calc(var(--u)*1.2);background:rgba(255,255,255,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1.5px solid rgba(255,255,255,.28);border-radius:999px;padding:calc(var(--u)*0.8) calc(var(--u)*2.2);box-shadow:0 calc(var(--u)*0.5) calc(var(--u)*1.2) rgba(8,30,70,.25),inset 0 1px 0 rgba(255,255,255,.15);color:#fff;font-size:calc(var(--u)*3.4)}
+	  #startOverlay .start-stat b{font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.15)}
+	  #startOverlay .start-stat .ico-svg{width:calc(var(--u)*3.6);height:calc(var(--u)*3.6);fill:white}
+	  #startOverlay .start-char{width:calc(var(--u)*3.6);height:calc(var(--u)*3.6);object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
   @keyframes subIn{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
   @keyframes btnIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
   /* Personagens espalhados em volta do título */
@@ -182,10 +187,16 @@
   #overlay .pause-card .btn.play-btn{background:linear-gradient(180deg,#43d66c,#2eb84d);box-shadow:0 calc(var(--u)*0.6) 0 #1a8c33}
   #overlay .pause-card .btn.sound-btn{background:linear-gradient(180deg,#6b9ed8,#4a7ec0);box-shadow:0 calc(var(--u)*0.6) 0 #2d5a94}
   #overlay .pause-card .btn.restart-btn{background:linear-gradient(180deg,#ff8c6b,#e05540);box-shadow:0 calc(var(--u)*0.6) 0 #a03528}
+	  #overlay .pause-card .btn.continue-btn{background:linear-gradient(180deg,#FFD54A,#F5A623);box-shadow:0 calc(var(--u)*0.6) 0 #c07d10;color:#4a2c00;animation-delay:.19s}
+	  #overlay .pause-card .btn .btn-char{width:calc(var(--u)*3.2);height:calc(var(--u)*3.2);object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15));flex:none}
   #overlay .pause-card .btn.music-btn{background:linear-gradient(180deg,#c084e0,#8b5cb0);box-shadow:0 calc(var(--u)*0.6) 0 #5a3878}
   /* Game Over */
   #overlay .go-score{font-size:calc(var(--u)*8.5);font-weight:800;color:#FFD54A;text-shadow:0 calc(var(--u)*0.4) 0 rgba(160,100,15,.35), 0 calc(var(--u)*0.2) calc(var(--u)*1) rgba(0,0,0,.25);margin:calc(var(--u)*0.5) 0;animation:cardPop .5s .2s cubic-bezier(.34,1.56,.64,1) both}
   #overlay .go-sub{font-size:calc(var(--u)*2.4);color:rgba(255,255,255,.7);margin:0 0 calc(var(--u)*2.5);animation:cardPop .5s .3s cubic-bezier(.34,1.56,.64,1) both}
+	  #overlay .go-stats{display:flex;gap:calc(var(--u)*3);justify-content:center;align-items:center;margin:0 0 calc(var(--u)*2);animation:cardPop .5s .25s cubic-bezier(.34,1.56,.64,1) both}
+	  #overlay .go-stat{display:flex;align-items:center;gap:calc(var(--u)*0.8);font-size:calc(var(--u)*2.4);color:rgba(255,255,255,.75);font-family:"Lilita One",sans-serif}
+	  #overlay .go-stat .ico-svg{width:calc(var(--u)*2.8);height:calc(var(--u)*2.8)}
+	  #overlay .go-char{width:calc(var(--u)*2.8);height:calc(var(--u)*2.8);object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.2))}
   #overlay .go-record{display:inline-block;background:rgba(255,200,50,.18);border:1px solid rgba(255,200,50,.3);border-radius:calc(var(--u)*2);padding:calc(var(--u)*0.5) calc(var(--u)*1.8);font-size:calc(var(--u)*2);color:#FFD54A;margin-bottom:calc(var(--u)*0.5);animation:cardPop .5s .15s cubic-bezier(.34,1.56,.64,1) both}
   #overlay .pause-card .tips{font-size:calc(var(--u)*2.1);color:rgba(255,255,255,.55);margin-top:calc(var(--u)*2.5);line-height:1.4;animation:cardPop .5s .4s cubic-bezier(.34,1.56,.64,1) both}
   /* Personagens do pause */
@@ -202,7 +213,8 @@
   #overlay .win-card{position:relative;background:rgba(255,255,255,.12);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,.2);padding:calc(var(--u)*4.5) calc(var(--u)*5);border-radius:calc(var(--u)*5);text-align:center;box-shadow:0 calc(var(--u)*1.5) calc(var(--u)*5) rgba(0,0,0,.3), 0 0 calc(var(--u)*4) rgba(255,200,50,.15);animation:cardPop .5s cubic-bezier(.34,1.56,.64,1)}
   #overlay .win-card h1{margin:0 0 calc(var(--u)*1.5);font-size:calc(var(--u)*7);color:#FFD54A;text-shadow:0 calc(var(--u)*0.5) 0 rgba(160,100,15,.4), 0 calc(var(--u)*0.2) calc(var(--u)*1.5) rgba(0,0,0,.3), 0 0 calc(var(--u)*3) rgba(255,200,50,.2);letter-spacing:.04em;animation:cardPop .55s .15s cubic-bezier(.34,1.56,.64,1) both}
   #overlay .win-card .wsub{font-size:calc(var(--u)*3);color:rgba(255,255,255,.85);margin:0 0 calc(var(--u)*2);text-shadow:0 calc(var(--u)*0.2) calc(var(--u)*0.6) rgba(0,0,0,.2);animation:cardPop .5s .25s cubic-bezier(.34,1.56,.64,1) both}
-  #overlay .win-card .wgem{display:inline-flex;align-items:center;gap:calc(var(--u)*1);background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:calc(var(--u)*1.2) calc(var(--u)*3);font-size:calc(var(--u)*3.2);color:#FFD54A;font-weight:800;animation:cardPop .5s .35s cubic-bezier(.34,1.56,.64,1) both}
+  #overlay .win-card .wscore{font-size:calc(var(--u)*8);font-weight:800;color:#FFD54A;text-shadow:0 calc(var(--u)*0.4) 0 rgba(160,100,15,.35),0 calc(var(--u)*0.2) calc(var(--u)*1) rgba(0,0,0,.25);margin:calc(var(--u)*0.5) 0;animation:cardPop .5s .3s cubic-bezier(.34,1.56,.64,1) both}
+	  #overlay .win-card .wbonus{display:inline-flex;align-items:center;gap:calc(var(--u)*1);background:rgba(67,214,108,.18);border:1px solid rgba(67,214,108,.3);border-radius:999px;padding:calc(var(--u)*1) calc(var(--u)*2.5);font-size:calc(var(--u)*2.6);color:#43d66c;font-weight:800;animation:cardPop .5s .4s cubic-bezier(.34,1.56,.64,1) both}
   #overlay .win-card .whint{font-size:calc(var(--u)*2);color:rgba(255,255,255,.45);margin-top:calc(var(--u)*2.5);animation:cardPop .5s .55s cubic-bezier(.34,1.56,.64,1) both}
   /* Personagens da vitória */
   .win-char{position:absolute;pointer-events:none;filter:drop-shadow(0 calc(var(--u)*0.6) calc(var(--u)*1) rgba(0,0,0,.35));animation:fadeIn .4s ease-out both}
@@ -215,7 +227,8 @@
   #overlay.hiding .win-card{animation:cardOut .3s ease-in forwards}
   #overlay.hiding .win-card h1{animation:cardOut .25s ease-in forwards}
   #overlay.hiding .win-card .wsub{animation:cardOut .2s ease-in forwards}
-  #overlay.hiding .win-card .wgem{animation:cardOut .2s ease-in forwards}
+	  #overlay.hiding .win-card .wscore{animation:cardOut .2s ease-in forwards}
+  #overlay.hiding .win-card .wbonus{animation:cardOut .2s ease-in forwards}
   #overlay.hiding .win-card .whint{animation:cardOut .15s ease-in forwards}
   #overlay.hiding .win-char{animation:fadeOut .25s ease-in forwards}
 </style>
@@ -265,6 +278,9 @@
     <circle cx="6" cy="18" r="3"/>
     <circle cx="18" cy="16" r="3"/>
   </symbol>
+  <symbol id="ico-star" viewBox="0 0 24 24">
+    <polygon points="12,1.5 15.5,8.5 23,9.5 17.5,15 19,22.5 12,18.5 5,22.5 6.5,15 1,9.5 8.5,8.5" fill="currentColor" stroke="none"/>
+  </symbol>
   <symbol id="ico-restart" viewBox="0 0 24 24">
     <path d="M3 4v6h6"/>
     <path d="M21 20v-6h-6"/>
@@ -302,6 +318,7 @@
   </div>
 
   <div id="tray"></div>
+
   <button id="shakeBtn">
     <span class="shake-inner">
       <svg class="ico-svg"><use href="#ico-shake"/></svg>
@@ -312,6 +329,10 @@
 </div></div>
 
 <div id="startOverlay">
+    <div id="startStats" class="start-stats">
+      <span class="start-stat"><svg class="ico-svg filled"><use href="#ico-star"/></svg> <b id="startBest">0</b></span>
+      <span class="start-stat"><img src="assets/char_a.png" class="start-char" alt=""> <b id="startChars">0</b></span>
+    </div>
   <div id="titleArea">
     <span class="char-wrap c1"><img src="assets/char_a.png" alt=""></span>
     <span class="char-wrap c2"><img src="assets/char_b.png" alt=""></span>
@@ -320,11 +341,11 @@
     <span class="char-wrap c5"><img src="assets/char_e.png" alt=""></span>
     <h1>TOY DROP</h1>
     <p class="sub">junte blocos iguais!</p>
-  </div>
-  <button id="playBtn" aria-label="jogar">
-    <svg class="ico-svg"><use href="#ico-play"/></svg>
-  </button>
 </div>
+	  <button id="playBtn" aria-label="jogar">
+	    <svg class="ico-svg"><use href="#ico-play"/></svg>
+	  </button>
+	</div>
 
 <audio id="bgm" src="assets/toy.mp3" loop preload="auto"></audio>
 <script src="js/matter.min.js"></script>

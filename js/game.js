@@ -164,10 +164,12 @@ let heldX = W/2, heldDrawX = W/2, heldSince = 0, nextAt = 0, drops = 0;
 let score = 0, best = +(localStorage.getItem('toydrop_best')||0);
 let gems = +(localStorage.getItem('toydrop_gems')||0);
 let charsCollected = +(localStorage.getItem('toydrop_chars')||0);   // peças especiais acumuladas (tier-7 merges)
+let continueUsed = false;   // já usou o continue nesta partida?
 let combo = 0, lastMergeAt = -9e9;
 let discovered = [true,true,false,false,false,false,false,false];
 let goalTotal = 0, goalLeft = 0, goalDone = false;   // objetivo: mesclar todas as peças marcadas do castelo
 let goalCelebUntil = 0;   // timestamp até quando mostrar a comemoração de tabuleiro limpo
+let _lastGoalBonus = 0;   // bônus em pontos do último tabuleiro limpo (pra mostrar no overlay)
 let dangerT = 0, usedShake = false;
 let particles = [], popups = [], chars = [], rings = [], fxConf = [];
 let pendingMerges = [];
@@ -516,9 +518,11 @@ function doMerge(a,b){
   combo = (gameClock-lastMergeAt < MERGE_WINDOW) ? combo+1 : 1;
   lastMergeAt = gameClock;
   const mult = Math.min(1+(combo-1)*.5, 4);
+  // Peças iniciais (marcadas) valem 100%; spawnadas valem 50% — incentiva focar no objetivo
+  const scoreMul = (a.plugin.initial || b.plugin.initial) ? 1 : 0.5;
 
   if(t === MAX_TIER){
-    addScore(Math.round(CELEBRATE_PTS*mult), mx, my);
+    addScore(Math.round(CELEBRATE_PTS*mult*scoreMul), mx, my);
     celebrate(mx, my);
   } else {
     const nt = t+1, np = PIECES[nt], nbh = np.h-STUD;
@@ -544,7 +548,7 @@ function doMerge(a,b){
     Body.setVelocity(nb, {x:0, y:-1.5});
     setTimeout(() => { if(!nb.plugin.dead) popRoom(nb); }, NEXT_DELAY);
     discovered[nt] = true;
-    addScore(Math.round(PIECES[nt].pts*mult), mx, my);
+    addScore(Math.round(PIECES[nt].pts*mult*scoreMul), mx, my);
     burst(mx, my, PIECES[nt].color, 16);
     camShake = Math.max(camShake, 3);
     sMerge(nt);
@@ -645,7 +649,11 @@ function checkGoal(){
   if(left !== goalLeft){ goalLeft = left; syncGoal(); }
   if(goalLeft === 0 && goalTotal > 0){
     goalDone = true;
-    gems += 50; localStorage.setItem('toydrop_gems', gems); syncScore();
+    gems += 50; localStorage.setItem('toydrop_gems', gems);
+    const bonus = Math.max(100, Math.round(score * 0.2));  // bônus de 20% do score, mín 100
+    score += bonus; _lastGoalBonus = bonus;
+    if(score>best){ best=score; localStorage.setItem('toydrop_best', best); }
+    syncScore();
     const now = performance.now();
     goalCelebUntil = now + 5000;   // 5 segundos de comemoração
     // Efeito dramático: slow-motion + tremor
@@ -679,8 +687,12 @@ function imgSrc(t){ return 'assets/'+PIECES[t].img+'.png'; }
 let _prevScore = 0, _prevChars = 0;
 function bustPill(el, cls){ if(!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
 function syncScore(){
-  if(score !== _prevScore){ $('score').textContent = score.toLocaleString('pt-BR'); bustPill($('score').parentElement, 'bust'); _prevScore = score; }
-  if($('charsCount') && charsCollected !== _prevChars){ $('charsCount').textContent = charsCollected.toLocaleString('pt-BR'); bustPill($('charsCount').parentElement, 'bust-char'); _prevChars = charsCollected; }
+  $('score').textContent = score.toLocaleString('pt-BR');
+  if(score !== _prevScore){ bustPill($('score').parentElement, 'bust'); _prevScore = score; }
+  if($('charsCount')){
+    $('charsCount').textContent = charsCollected.toLocaleString('pt-BR');
+    if(charsCollected !== _prevChars){ bustPill($('charsCount').parentElement, 'bust-char'); _prevChars = charsCollected; }
+  }
 }
 function markedByTier(){
   const per = [0,0,0,0,0,0,0,0];
@@ -823,12 +835,48 @@ function fakeAd(kind, cb){
     else $('adCount').textContent = n;
   }, 1000);
 }
+function doContinue(){
+  if(!continueUsed && charsCollected >= 5 && state==='over'){
+    charsCollected -= 5;
+    localStorage.setItem('toydrop_chars', charsCollected);
+    syncScore();
+
+    // Remove as 3 camadas do topo da pilha
+    const snapped = pieces.filter(b=>b.plugin.snapped && !b.plugin.dead);
+    snapped.sort((a,b)=>a.bounds.min.y - b.bounds.min.y);  // mais alto primeiro
+    const layers = [];
+    for(const b of snapped){
+      let placed = false;
+      for(const layer of layers){
+        if(Math.abs(b.bounds.min.y - layer[0].bounds.min.y) < 24){ layer.push(b); placed = true; break; }
+      }
+      if(!placed) layers.push([b]);
+    }
+    const toRemove = layers.slice(0, 3).flat();
+    for(const b of toRemove){
+      const p = PIECES[b.plugin.tier];
+      burst(b.position.x, b.position.y, p.color, 18);
+      burst(b.position.x, b.position.y, '#FFFFFF', 12);
+      rings.push({x:b.position.x, y:b.position.y, w:p.w, h:p.h-STUD, t0:performance.now()});
+      removeBody(b);
+    }
+
+    dangerT = 0; continueUsed = true;
+    camShake = Math.max(camShake, 6); targetTS = .55;
+    setTimeout(()=>{ targetTS = 1; }, 500);
+    sWarpUp();
+
+    hideOverlay(); state = 'play'; setPauseIcon('ico-pause');
+    SDK.gameplayStart();
+  }
+}
 function doGameOver(){
   if(state!=='play') return;
   TD.lastOver = {score, dangerT:Math.round(dangerT), charsCollected,
     pecas: pieces.map(b=>({t:b.plugin.tier, x:Math.round(b.position.x), y:Math.round(b.position.y), minY:Math.round(b.bounds.min.y), snap:!!b.plugin.snapped}))};
   state = 'over'; SDK.gameplayStop(); sOver(); camShake = 6;
   const rec = score>=best && score>0;
+  const canContinue = !continueUsed && charsCollected >= 5;
   const chars = ['a','b','c','d'];
   overlay.innerHTML =
     '<div class="pause-wrap">'+
@@ -836,8 +884,12 @@ function doGameOver(){
         '<h1>'+(rec?'NOVO RECORDE!':'FIM DE JOGO')+'</h1>'+
         (rec?'<div class="go-record">🏆 '+best.toLocaleString('pt-BR')+' pts</div>':'')+
         '<div class="go-score">'+score.toLocaleString('pt-BR')+'</div>'+
-        '<div class="go-sub">recorde '+best.toLocaleString('pt-BR')+' · 🧩 '+charsCollected.toLocaleString('pt-BR')+'</div>'+
+        '<div class="go-stats">'+
+          '<span class="go-stat"><svg class="ico-svg filled"><use href="#ico-star"/></svg> '+best.toLocaleString('pt-BR')+'</span>'+
+          '<span class="go-stat"><img src="assets/char_a.png" class="go-char" alt=""> '+charsCollected.toLocaleString('pt-BR')+'</span>'+
+        '</div>'+
         '<div class="btn-row">'+
+          (canContinue?'<button class="btn continue-btn" id="continueBtn"><img src="assets/char_a.png" class="btn-char" alt=""> Continuar -5</button>':'')+
           '<button class="btn play-btn" id="againBtn"><svg class="ico-svg"><use href="#ico-restart"/></svg> Jogar de Novo</button>'+
         '</div>'+
       '</div>'+
@@ -845,6 +897,7 @@ function doGameOver(){
     '</div>';
   overlay.classList.remove('hiding');
   overlay.style.display='flex';
+  if(canContinue) $('continueBtn').addEventListener('click', doContinue);
   $('againBtn').addEventListener('click', ()=>{ SDK.midgame(restart); });
 }
 function pause(){
@@ -896,7 +949,8 @@ function showWinOverlay(){
       '<div class="win-card">'+
         '<h1>PARABÉNS!</h1>'+
         '<div class="wsub">Tabuleiro Limpo!</div>'+
-        '<div class="wgem">💎 +50</div>'+
+        '<div class="wscore">'+score.toLocaleString('pt-BR')+'</div>'+
+        '<div class="wbonus">+'+_lastGoalBonus.toLocaleString('pt-BR')+' bônus</div>'+
         '<div class="whint">toque para continuar</div>'+
       '</div>'+
       chars.map((c,i)=>'<span class="win-char wc'+(i+1)+'"><img src="assets/char_'+c+'.png" alt=""></span>').join('')+
@@ -923,7 +977,7 @@ function showWinOverlay(){
 function restart(){
   for(const b of [...pieces]) removeBody(b);
   particles=[]; popups=[]; chars=[]; rings=[]; fxConf=[]; pendingMerges=[];
-  score=0; _prevScore=0; combo=0; drops=0; dangerT=0; usedShake=false; camShake=0; targetTS=1; timeScale=1; gameClock=0; goalCelebUntil=0;
+  score=0; _prevScore=0; combo=0; drops=0; dangerT=0; continueUsed=false; usedShake=false; camShake=0; targetTS=1; timeScale=1; gameClock=0; goalCelebUntil=0;
   if(winDismissTimer){ clearTimeout(winDismissTimer); winDismissTimer = null; }
   stash=null; holdUsed=false;
   discovered = [true,true,false,false,false,false,false,false];
@@ -1539,6 +1593,9 @@ loadImages().then(()=>{
   fit();
   queue = []; refillQueue(); newCurrent(); heldDrawX = heldX;
   syncScore();
+  // Popula stats na tela inicial
+  if($('startBest')) $('startBest').textContent = best.toLocaleString('pt-BR');
+  if($('startChars')) $('startChars').textContent = charsCollected.toLocaleString('pt-BR');
   setupInitialBoard();
   resetGoal();
   animateInitialBoard();
