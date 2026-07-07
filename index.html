@@ -81,6 +81,16 @@
   #shakeBtn .ico-svg{width:calc(var(--u)*3.4);height:calc(var(--u)*3.4)}
   .shake-inner{display:flex;align-items:center;gap:calc(var(--u)*1.2)}
 
+  /* ═══ Loader ═══ */
+  #loader{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(ellipse at center, rgba(6,18,36,.5) 0%, rgba(4,14,28,.8) 100%);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:opacity .5s}
+  #loader.hiding{opacity:0;pointer-events:none}
+  #loader .loader-card{text-align:center}
+  #loader h1{font:800 calc(var(--u)*8) "Lilita One",sans-serif;color:#FFD54A;text-shadow:0 calc(var(--u)*0.6) 0 rgba(160,100,15,.4), 0 calc(var(--u)*0.3) calc(var(--u)*2) rgba(0,0,0,.35);margin:0 0 calc(var(--u)*4);letter-spacing:.06em;animation:titleFloat 2.5s ease-in-out infinite}
+  #loader .loader-bar{width:calc(var(--u)*34);height:calc(var(--u)*1.6);background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.15)}
+  #loader .loader-fill{width:30%;height:100%;background:linear-gradient(90deg,#43d66c,#5be87d);border-radius:999px;animation:loadPulse 1s ease-in-out infinite}
+  @keyframes loadPulse{0%{width:15%}50%{width:75%}100%{width:15%}}
+  #loader .loader-text{font:400 calc(var(--u)*2.2) "Lilita One",sans-serif;color:rgba(255,255,255,.55);margin-top:calc(var(--u)*2.2);letter-spacing:.05em}
+
   /* ═══ Tela inicial ═══ */
   #startOverlay{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(ellipse at center, transparent 30%, rgba(6,18,36,.25) 60%, rgba(6,18,36,.55) 100%);backdrop-filter:blur(0.5px);-webkit-backdrop-filter:blur(0.5px);transition:opacity .5s,backdrop-filter .5s;animation:overlayIn .5s ease-out}
   #startOverlay.hiding{opacity:0;pointer-events:none;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0)}
@@ -263,6 +273,7 @@
   </symbol>
 </svg>
 
+<div id="loader"><div class="loader-card"><h1>TOY DROP</h1><div class="loader-bar"><div class="loader-fill"></div></div><p class="loader-text">carregando...</p></div></div>
 <div id="wrap"><div id="stage">
   <div id="panelFrame"></div>
   <canvas id="game"></canvas>

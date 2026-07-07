@@ -1479,6 +1479,9 @@ function animateInitialBoard(){
 
 /* ---------- Boot ---------- */
 loadImages().then(()=>{
+  // Esconde o loader com fade-out
+  const loader = document.getElementById('loader');
+  if(loader){ loader.classList.add('hiding'); setTimeout(()=>loader.remove(), 500); }
   fit();
   queue = []; refillQueue(); newCurrent(); heldDrawX = heldX;
   syncScore();
