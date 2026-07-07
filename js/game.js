@@ -645,13 +645,18 @@ function buildGoalTray(){
   const tray = $('tray'); tray.innerHTML = '';
   goalSlots = [];
   const per = markedByTier();
+  let idx = 0;
   for(let t=1; t<=MAX_TIER; t++){
     if(!per[t]) continue;
     const slot = document.createElement('div'); slot.className = 'gslot';
+    const delay = (0.35 + idx*0.09).toFixed(2)+'s';
+    slot.style.animationDelay = delay;
     const im = document.createElement('img'); im.src = imgSrc(t);
+    im.style.animationDelay = delay;
     const bd = document.createElement('b'); bd.textContent = per[t];
     slot.appendChild(im); slot.appendChild(bd); tray.appendChild(slot);
     goalSlots.push({tier:t, slot, bd});
+    idx++;
   }
 }
 function syncGoal(){
@@ -755,7 +760,16 @@ function hideOverlay(){
 function fakeAd(kind, cb){
   const prev = state; state = 'ad';
   let n = 2;
-  showOverlay('<h1>anúncio simulado</h1><p>('+kind+' — aqui entra o SDK da CrazyGames)</p><div class="big" id="adCount">'+n+'</div>');
+  overlay.innerHTML =
+    '<div class="pause-wrap">'+
+      '<div class="pause-card">'+
+        '<h1>anúncio</h1>'+
+        '<div class="go-sub">('+kind+' — SDK CrazyGames)</div>'+
+        '<div class="go-score" id="adCount">'+n+'</div>'+
+      '</div>'+
+    '</div>';
+  overlay.classList.remove('hiding');
+  overlay.style.display='flex';
   const iv = setInterval(()=>{
     n--;
     if(n<=0){ clearInterval(iv); hideOverlay(); state = (prev==='ad')?'play':prev; cb && cb(); }
@@ -768,12 +782,23 @@ function doGameOver(){
     pecas: pieces.map(b=>({t:b.plugin.tier, x:Math.round(b.position.x), y:Math.round(b.position.y), minY:Math.round(b.bounds.min.y), snap:!!b.plugin.snapped}))};
   state = 'over'; SDK.gameplayStop(); sOver(); camShake = 6;
   const rec = score>=best && score>0;
-  showOverlay('<h1>'+(rec?'novo recorde!':'fim de jogo')+'</h1>'+
-    '<div class="big">'+score.toLocaleString('pt-BR')+'</div>'+
-    '<p>recorde '+best.toLocaleString('pt-BR')+' · 💎 '+gems.toLocaleString('pt-BR')+'</p>'+
-    '<button class="btn" id="againBtn">jogar de novo</button>'+
-    '<div class="adnote">interstitial da CrazyGames entra antes do restart</div>');
-  $('againBtn').addEventListener('click', ()=> SDK.midgame(restart));
+  const chars = ['a','b','c','d'];
+  overlay.innerHTML =
+    '<div class="pause-wrap">'+
+      '<div class="pause-card">'+
+        '<h1>'+(rec?'NOVO RECORDE!':'FIM DE JOGO')+'</h1>'+
+        (rec?'<div class="go-record">🏆 '+best.toLocaleString('pt-BR')+'</div>':'')+
+        '<div class="go-score">'+score.toLocaleString('pt-BR')+'</div>'+
+        '<div class="go-sub">recorde '+best.toLocaleString('pt-BR')+' · 💎 '+gems.toLocaleString('pt-BR')+'</div>'+
+        '<div class="btn-row">'+
+          '<button class="btn play-btn" id="againBtn"><svg class="ico-svg"><use href="#ico-restart"/></svg> Jogar de Novo</button>'+
+        '</div>'+
+      '</div>'+
+      chars.map((c,i)=>'<span class="pause-char pc'+(i+1)+'"><img src="assets/char_'+c+'.png" alt=""></span>').join('')+
+    '</div>';
+  overlay.classList.remove('hiding');
+  overlay.style.display='flex';
+  $('againBtn').addEventListener('click', ()=>{ SDK.midgame(restart); });
 }
 function pause(){
   if(state!=='play') return;
