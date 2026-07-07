@@ -52,6 +52,31 @@ let AC = null, muted = localStorage.getItem('toydrop_mute')==='1';
 function audioInit(){
   if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
   if(AC && AC.state==='suspended') AC.resume();
+  // Se o browser bloqueou o autoplay, tenta de novo na interação
+  const bgm = $('bgm');
+  if(bgm && bgm.paused && !muted){
+    bgm.volume = 0.06;
+    bgm.play().catch(()=>{});
+  }
+}
+function startBgm(){
+  const bgm = $('bgm');
+  if(!bgm || muted) return;
+  bgm.volume = 0.08;
+  bgm.loop = true;
+  bgm.play().then(()=>{
+    // tocou — ok
+  }).catch(()=>{
+    // Browser bloqueou autoplay: espera primeiro toque
+    const resume = ()=>{
+      if(muted) return;
+      bgm.play().catch(()=>{});
+      document.removeEventListener('pointerdown', resume);
+      document.removeEventListener('keydown', resume);
+    };
+    document.addEventListener('pointerdown', resume, {once:true});
+    document.addEventListener('keydown', resume, {once:true});
+  });
 }
 function tone(f,d,type,g,slide,delay){
   if(muted || !AC) return;
@@ -776,6 +801,11 @@ function pause(){
     const label = muted ? 'Som Desligado' : 'Som Ligado';
     const icon = muted ? 'ico-speaker-mute' : 'ico-speaker';
     $('muteBtn').innerHTML = '<svg class="ico-svg"><use href="#'+icon+'"/></svg> '+label;
+    const bgm = $('bgm');
+    if(bgm){
+      if(muted) bgm.pause();
+      else{ bgm.volume = 0.06; bgm.play().catch(()=>{}); }
+    }
   });
   $('restartBtn').addEventListener('click', ()=>{ hideOverlay(); restart(); });
 }
@@ -1382,6 +1412,7 @@ loadImages().then(()=>{
   animateInitialBoard();
   // Loop já roda na tela inicial — peças animam no menu
   requestAnimationFrame(loop);
+  startBgm();
   const startOverlay = document.getElementById('startOverlay');
   const playBtn = document.getElementById('playBtn');
   playBtn.addEventListener('click', ()=>{
