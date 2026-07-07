@@ -50,34 +50,72 @@ function loadImages(){
 /* ---------- Áudio ---------- */
 let AC = null, muted = localStorage.getItem('toydrop_mute')==='1';
 let musicMuted = localStorage.getItem('toydrop_musicMute')==='1';
+
+/* ---------- BGM (Web Audio API — crossfade loop sem corte) ---------- */
+let bgmBuffer = null, _bgmLoading = null, _bgmNodes = [], _bgmTimer = null;
+function loadBgm(){
+  if(bgmBuffer) return Promise.resolve();
+  if(_bgmLoading) return _bgmLoading;
+  if(!AC) return Promise.reject('no AC');
+  _bgmLoading = fetch('assets/toy.mp3')
+    .then(r => { if(!r.ok) throw new Error('bgm fetch failed'); return r.arrayBuffer(); })
+    .then(arr => AC.decodeAudioData(arr))
+    .then(buf => { bgmBuffer = buf; _bgmLoading = null; })
+    .catch(e => { console.warn('bgm:', e.message); _bgmLoading = null; });
+  return _bgmLoading;
+}
+function _scheduleBgmIteration(when){
+  if(!AC || !bgmBuffer) return;
+  const dur = bgmBuffer.duration;
+  const fade = Math.min(2.2, dur * 0.08);        // ~8% da duração, máx 2.2s
+  const overlap = fade * 0.55;                     // sobreposição entre iterações
+
+  const src = AC.createBufferSource();
+  src.buffer = bgmBuffer;
+  const gain = AC.createGain();
+
+  // Envelope: fade-in → sustain → fade-out
+  gain.gain.setValueAtTime(0, when);
+  gain.gain.linearRampToValueAtTime(0.08, when + fade);
+  gain.gain.setValueAtTime(0.08, when + dur - fade);
+  gain.gain.linearRampToValueAtTime(0, when + dur);
+
+  gain.connect(AC.destination);
+  src.connect(gain);
+  src.start(when);
+  src.stop(when + dur + 0.3);
+
+  // Track pra cleanup
+  const entry = {src, gain};
+  _bgmNodes.push(entry);
+  src.onended = () => { entry.done = true; _bgmNodes = _bgmNodes.filter(n => !n.done); };
+
+  // Agenda a próxima iteração antes desta acabar
+  const nextWhen = when + dur - overlap;
+  const scheduleIn = Math.max(120, (when + dur - fade * 2.5 - AC.currentTime) * 1000);
+  clearTimeout(_bgmTimer);
+  _bgmTimer = setTimeout(() => { _bgmTimer = null; _scheduleBgmIteration(nextWhen); }, scheduleIn);
+}
+function startBgm(){
+  if(!AC || !bgmBuffer || musicMuted) return;
+  stopBgm();
+  if(AC.state==='suspended') AC.resume();
+  _scheduleBgmIteration(AC.currentTime + 0.15);
+}
+function stopBgm(){
+  if(_bgmTimer){ clearTimeout(_bgmTimer); _bgmTimer = null; }
+  for(const n of _bgmNodes){
+    try { n.gain.gain.cancelScheduledValues(0); } catch(e) {}
+    try { n.src.stop(); } catch(e) {}
+    n.src.disconnect(); n.gain.disconnect();
+  }
+  _bgmNodes = [];
+}
 function audioInit(){
   if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
   if(AC && AC.state==='suspended') AC.resume();
-  // Se o browser bloqueou o autoplay, tenta de novo na interação
-  const bgm = $('bgm');
-  if(bgm && bgm.paused && !musicMuted){
-    bgm.volume = 0.08;
-    bgm.play().catch(()=>{});
-  }
-}
-function startBgm(){
-  const bgm = $('bgm');
-  if(!bgm || musicMuted) return;
-  bgm.volume = 0.08;
-  bgm.loop = true;
-  bgm.play().then(()=>{
-    // tocou — ok
-  }).catch(()=>{
-    // Browser bloqueou autoplay: espera primeiro toque
-    const resume = ()=>{
-      if(musicMuted) return;
-      bgm.play().catch(()=>{});
-      document.removeEventListener('pointerdown', resume);
-      document.removeEventListener('keydown', resume);
-    };
-    document.addEventListener('pointerdown', resume, {once:true});
-    document.addEventListener('keydown', resume, {once:true});
-  });
+  if(!bgmBuffer && AC) loadBgm().then(()=>{ if(!musicMuted) startBgm(); });
+  else if(!musicMuted && !_bgmNodes.length) startBgm();
 }
 function tone(f,d,type,g,slide,delay){
   if(muted || !AC) return;
@@ -843,11 +881,8 @@ function pause(){
     musicMuted=!musicMuted; localStorage.setItem('toydrop_musicMute', musicMuted?'1':'0');
     const label = musicMuted ? 'Música Desl.' : 'Música Lig.';
     $('muteMusicBtn').innerHTML = '<svg class="ico-svg"><use href="#ico-music"/></svg> '+label;
-    const bgm = $('bgm');
-    if(bgm){
-      if(musicMuted) bgm.pause();
-      else{ bgm.volume = 0.08; bgm.play().catch(()=>{}); }
-    }
+    if(musicMuted) stopBgm();
+    else startBgm();
   });
   $('restartBtn').addEventListener('click', ()=>{ hideOverlay(); restart(); });
 }
@@ -1509,7 +1544,9 @@ loadImages().then(()=>{
   animateInitialBoard();
   // Loop já roda na tela inicial — peças animam no menu
   requestAnimationFrame(loop);
-  startBgm();
+  // Inicia AudioContext e carrega BGM; toca assim que o buffer estiver pronto
+  try { AC = new (window.AudioContext||window.webkitAudioContext)(); } catch(e) {}
+  loadBgm().then(()=>{ startBgm(); });
   const startOverlay = document.getElementById('startOverlay');
   const playBtn = document.getElementById('playBtn');
   playBtn.addEventListener('click', ()=>{
