@@ -10,68 +10,162 @@
 <style>
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-user-select:none;user-select:none}
-  body{background:#2e6cb0 url(assets/background2.png) center/cover no-repeat;font-family:"Lilita One",sans-serif}   /* landscape: preenche as laterais */
+  body{background:#2e6cb0 url(assets/background2.png) center/cover no-repeat;font-family:"Lilita One",sans-serif}
   #wrap{height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
   #stage{position:relative;flex:none;background:#3a7ec2 url(assets/background.png) center/cover no-repeat;overflow:hidden}
-  #stage.landscape{background:none}   /* landscape: fundo é o background2 do body — um OU o outro */
-  #panelFrame{position:absolute;left:21.45%;top:17.7%;width:57.1%;height:64.8%;border-radius:calc(var(--u)*5) calc(var(--u)*5) 0 0;background:#277bdc;border:calc(var(--u)*1.6) solid #4499f2;box-shadow:0 calc(var(--u)*1.5) calc(var(--u)*5) rgba(6,40,100,.45), inset 0 calc(var(--u)*0.6) calc(var(--u)*1.5) rgba(9,50,120,.35)}
+  #stage.landscape{background:none}
+  #panelFrame{position:absolute;left:21.45%;top:17.7%;width:57.1%;height:64.8%;border-radius:calc(var(--u)*5) calc(var(--u)*5) 0 0;background:#277bdc;border:calc(var(--u)*1.6) solid #4499f2;box-shadow:0 calc(var(--u)*1.5) calc(var(--u)*5) rgba(6,40,100,.45), inset 0 calc(var(--u)*0.6) calc(var(--u)*1.5) rgba(9,50,120,.35);z-index:2}
   canvas{position:absolute;display:block;touch-action:none}
-  /* área de jogo perfeitamente centrada */
-  #game{left:23.11%;top:19.85%;width:53.8%;height:61.6%}
-  /* camada de efeitos: cobre a cena toda, SEM recorte — a comemoração voa pra fora do painel */
-  #fx{left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1}
+  #game{left:23.11%;top:19.85%;width:53.8%;height:61.6%;z-index:3}
+  #fx{left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:4}
 
-  /* barra superior */
-  #topbar{position:absolute;top:2.6%;left:16%;right:16%;display:flex;align-items:center;justify-content:space-between;pointer-events:none;z-index:3}
+  /* ═══ Ícones SVG ═══ */
+  .ico-svg{width:calc(var(--u)*4);height:calc(var(--u)*4);fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+  /* ═══ Barra superior ═══ */
+  #topbar{position:absolute;top:2.6%;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:calc(var(--u)*2.5);pointer-events:none;z-index:5}
   #topbar>*{pointer-events:auto}
-  .icobtn{background:#fff;border:0;border-radius:30%;width:calc(var(--u)*9.5);height:calc(var(--u)*9.5);font-size:calc(var(--u)*4.6);line-height:1;box-shadow:0 calc(var(--u)*0.7) 0 rgba(20,50,90,.18);cursor:pointer;display:flex;align-items:center;justify-content:center}
-  .icobtn:active{transform:translateY(6%)}
-  .pillrow{display:flex;gap:calc(var(--u)*2)}
-  .pill{position:relative;display:flex;align-items:center;gap:calc(var(--u)*1.3);background:#fff;border-radius:999px;padding:calc(var(--u)*1) calc(var(--u)*2.4);box-shadow:0 calc(var(--u)*0.7) 0 rgba(20,50,90,.18)}
-  .pill .ico{font-size:calc(var(--u)*3.8)}
-  .pill b{font-size:calc(var(--u)*3.6);color:#2b3a55;font-weight:800;letter-spacing:.01em}
-  .plus{position:absolute;right:calc(var(--u)*-1.4);top:50%;transform:translateY(-50%);width:calc(var(--u)*3.6);height:calc(var(--u)*3.6);border-radius:50%;background:#37c463;color:#fff;font-size:calc(var(--u)*3);font-weight:800;display:flex;align-items:center;justify-content:center;border:0;cursor:pointer;box-shadow:0 calc(var(--u)*0.4) 0 rgba(20,50,90,.2)}
 
-  /* objetivo: peças marcadas restantes por tipo, abaixo do painel */
-  #tray{position:absolute;left:17%;right:17%;bottom:2.4%;height:calc(var(--u)*8.4);background:rgba(38,104,180,.5);border-radius:calc(var(--u)*4.2);display:flex;align-items:center;justify-content:center;gap:calc(var(--u)*3.4);padding:0 calc(var(--u)*3);box-shadow:inset 0 calc(var(--u)*0.6) 0 rgba(10,40,80,.25);z-index:2}
+  /* Botões de ícone (gear, pause) — vidro com borda */
+  .icobtn{background:rgba(255,255,255,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1.5px solid rgba(255,255,255,.28);border-radius:50%;width:calc(var(--u)*9);height:calc(var(--u)*9);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 calc(var(--u)*0.5) calc(var(--u)*1.2) rgba(8,30,70,.25), inset 0 1px 0 rgba(255,255,255,.15);transition:transform .12s,box-shadow .12s}
+  .icobtn:active{transform:translateY(5%);box-shadow:0 calc(var(--u)*0.2) calc(var(--u)*0.6) rgba(8,30,70,.25)}
+  .icobtn .ico-svg{width:calc(var(--u)*4.4);height:calc(var(--u)*4.4)}
+
+  /* Pills de score/gemas — vidro fosco */
+  .pillrow{display:flex;gap:calc(var(--u)*1.8)}
+  .pill{position:relative;display:flex;align-items:center;gap:calc(var(--u)*1.2);background:rgba(255,255,255,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1.5px solid rgba(255,255,255,.28);border-radius:999px;padding:calc(var(--u)*0.8) calc(var(--u)*2.2);box-shadow:0 calc(var(--u)*0.5) calc(var(--u)*1.2) rgba(8,30,70,.25), inset 0 1px 0 rgba(255,255,255,.15);color:#fff;min-width:calc(var(--u)*10)}
+  .pill .ico-svg{width:calc(var(--u)*3.6);height:calc(var(--u)*3.6)}
+  .pill b{font-size:calc(var(--u)*3.4);font-weight:800;letter-spacing:.02em;text-shadow:0 1px 2px rgba(0,0,0,.15)}
+
+  /* Botão + nas gemas */
+  .plus{position:absolute;right:calc(var(--u)*-1.2);top:50%;transform:translateY(-50%);width:calc(var(--u)*3.4);height:calc(var(--u)*3.4);border-radius:50%;background:linear-gradient(135deg,#43d66c,#2eb84d);color:#fff;border:2px solid rgba(255,255,255,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 calc(var(--u)*0.35) 0 #1a8c33, 0 calc(var(--u)*0.3) calc(var(--u)*1) rgba(30,140,60,.35);transition:transform .1s;z-index:1}
+  .plus:active{transform:translateY(-50%) translateY(15%)}
+  .plus .ico-svg{width:calc(var(--u)*2.4);height:calc(var(--u)*2.4);stroke-width:3}
+
+  /* ═══ Bandeja de objetivo ═══ */
+  #tray{position:absolute;left:17%;right:17%;bottom:2.4%;height:calc(var(--u)*8.2);background:rgba(38,104,180,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);border:1.2px solid rgba(255,255,255,.15);border-radius:calc(var(--u)*4.1);display:flex;align-items:center;justify-content:center;gap:calc(var(--u)*3);padding:0 calc(var(--u)*3);box-shadow:inset 0 calc(var(--u)*0.5) calc(var(--u)*1) rgba(10,40,80,.2);z-index:5}
   .gslot{position:relative;display:flex;align-items:center;justify-content:center}
-  .gslot img{height:calc(var(--u)*3.6);object-fit:contain}
-  .gslot b{position:absolute;right:calc(var(--u)*-1.7);top:calc(var(--u)*-1.9);min-width:calc(var(--u)*3.1);height:calc(var(--u)*3.1);padding:0 calc(var(--u)*0.7);border-radius:999px;background:#fff;color:#2b3a55;font-size:calc(var(--u)*2.1);font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 calc(var(--u)*0.35) 0 rgba(20,50,90,.28)}
-  .gslot.done img{opacity:.4}
+  .gslot img{height:calc(var(--u)*3.4);object-fit:contain;filter:drop-shadow(0 2px 2px rgba(0,0,0,.2))}
+  .gslot b{position:absolute;right:calc(var(--u)*-1.5);top:calc(var(--u)*-1.7);min-width:calc(var(--u)*2.8);height:calc(var(--u)*2.8);padding:0 calc(var(--u)*0.6);border-radius:999px;background:#fff;color:#2b3a55;font-size:calc(var(--u)*2);font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 calc(var(--u)*0.3) 0 rgba(20,50,90,.25)}
+  .gslot.done img{opacity:.35}
   .gslot.done b{background:#37c463;color:#fff}
 
-  #shakeBtn{position:absolute;left:50%;bottom:21%;transform:translateX(-50%);display:none;pointer-events:auto;background:#ffb733;border:0;color:#5a3a00;border-radius:999px;padding:calc(var(--u)*1.4) calc(var(--u)*3);font-size:calc(var(--u)*3);font-weight:800;cursor:pointer;box-shadow:0 calc(var(--u)*0.7) 0 rgba(150,90,0,.4);z-index:3}
-  #shakeBtn:active{transform:translateX(-50%) translateY(6%)}
+  /* ═══ Botão chacoalhar ═══ */
+  #shakeBtn{position:absolute;left:50%;top:11%;transform:translateX(-50%) translateY(calc(var(--u)*11));opacity:0;pointer-events:none;background:linear-gradient(180deg,#FFE88C 0%,#FFCC2F 40%,#F5A623 100%);border:0;color:#4a2c00;border-radius:calc(var(--u)*3.5);padding:calc(var(--u)*1.5) calc(var(--u)*4.5);font-size:calc(var(--u)*2.9);font-weight:800;font-family:"Lilita One",sans-serif;cursor:pointer;box-shadow:0 calc(var(--u)*1.8) calc(var(--u)*4) rgba(0,0,0,.25), 0 calc(var(--u)*0.6) calc(var(--u)*1.5) rgba(0,0,0,.18);z-index:1;letter-spacing:.05em;display:flex;align-items:center;gap:calc(var(--u)*1.2);transition:opacity .4s,transform .4s cubic-bezier(.34,1.56,.64,1),box-shadow .4s}
+  #shakeBtn.visible{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);box-shadow:0 calc(var(--u)*2.2) calc(var(--u)*5) rgba(0,0,0,.28), 0 calc(var(--u)*0.8) calc(var(--u)*2) rgba(0,0,0,.2), 0 0 calc(var(--u)*4) rgba(245,166,35,.35)}
+  #shakeBtn:active{transform:translateX(-50%) translateY(5%)!important;box-shadow:0 calc(var(--u)*0.6) calc(var(--u)*1.5) rgba(0,0,0,.2), 0 calc(var(--u)*0.2) calc(var(--u)*0.6) rgba(0,0,0,.15)}
+  #shakeBtn .ico-svg{width:calc(var(--u)*3.4);height:calc(var(--u)*3.4)}
+  .shake-inner{display:flex;align-items:center;gap:calc(var(--u)*1.2)}
 
-  #overlay{position:absolute;inset:0;background:rgba(20,50,90,.55);display:none;align-items:center;justify-content:center;text-align:center;z-index:6}
-  #overlay .card2{background:#fff;padding:calc(var(--u)*5) calc(var(--u)*5);border-radius:calc(var(--u)*5);max-width:74%;box-shadow:0 calc(var(--u)*1.2) 0 rgba(20,50,90,.25)}
-  #overlay h1{margin:0 0 calc(var(--u)*1);font-size:calc(var(--u)*5.4);color:#2b3a55}
-  #overlay .big{font-size:calc(var(--u)*9);font-weight:800;margin:calc(var(--u)*1) 0;color:#f5a623}
-  #overlay p{font-size:calc(var(--u)*3);color:#5a6b85;margin:calc(var(--u)*2) 0}
-  #overlay .btn{background:#37c463;border:0;color:#fff;border-radius:999px;padding:calc(var(--u)*2.2) calc(var(--u)*5);font-size:calc(var(--u)*3.8);font-weight:800;cursor:pointer;box-shadow:0 calc(var(--u)*0.8) 0 rgba(20,90,50,.4);margin-top:calc(var(--u)*1)}
-  #overlay .btn.alt{background:#5b8bd0;box-shadow:0 calc(var(--u)*0.8) 0 rgba(30,60,120,.4)}
-  #overlay .btn:active{transform:translateY(8%)}
-  #overlay .row{display:flex;gap:calc(var(--u)*2);justify-content:center;flex-wrap:wrap}
-  #overlay .adnote{font-size:calc(var(--u)*2.3);color:#9aa8bd;border:1px dashed #cdd8e6;border-radius:calc(var(--u)*2);padding:calc(var(--u)*1.4);margin-top:calc(var(--u)*2.4)}
+  /* ═══ Overlay / Modais ═══ */
+  #overlay{position:absolute;inset:0;background:rgba(14,36,68,.62);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;text-align:center;z-index:6}
+  #overlay .card2{background:linear-gradient(180deg,#fff 0%,#f4f7fc 100%);padding:calc(var(--u)*5) calc(var(--u)*4.5);border-radius:calc(var(--u)*5);max-width:76%;box-shadow:0 calc(var(--u)*1.2) 0 rgba(14,36,68,.2), 0 calc(var(--u)*0.4) calc(var(--u)*3) rgba(14,36,68,.15)}
+  #overlay h1{margin:0 0 calc(var(--u)*0.8);font-size:calc(var(--u)*5);color:#1e3250}
+  #overlay .big{font-size:calc(var(--u)*8.5);font-weight:800;margin:calc(var(--u)*0.8) 0;color:#f5a623;text-shadow:0 2px 0 rgba(180,120,20,.2)}
+  #overlay p{font-size:calc(var(--u)*2.8);color:#5a6b85;margin:calc(var(--u)*1.6) 0;line-height:1.4}
+  #overlay .btn{background:linear-gradient(180deg,#43d66c,#2eb84d);border:0;color:#fff;border-radius:999px;padding:calc(var(--u)*2) calc(var(--u)*4.5);font-size:calc(var(--u)*3.6);font-weight:800;font-family:"Lilita One",sans-serif;cursor:pointer;box-shadow:0 calc(var(--u)*0.7) 0 #1a8c33, 0 calc(var(--u)*0.3) calc(var(--u)*1.2) rgba(30,140,60,.3);margin-top:calc(var(--u)*0.8);transition:transform .1s}
+  #overlay .btn:active{transform:translateY(7%)}
+  #overlay .btn.alt{background:linear-gradient(180deg,#6b9ed8,#4a7ec0);box-shadow:0 calc(var(--u)*0.7) 0 #2d5a94, 0 calc(var(--u)*0.3) calc(var(--u)*1.2) rgba(30,60,120,.3)}
+  #overlay .btn.warn{background:linear-gradient(180deg,#ff8c6b,#e05540);box-shadow:0 calc(var(--u)*0.7) 0 #a03528, 0 calc(var(--u)*0.3) calc(var(--u)*1.2) rgba(180,60,40,.3)}
+  #overlay .row{display:flex;gap:calc(var(--u)*1.8);justify-content:center;flex-wrap:wrap}
+  #overlay .adnote{font-size:calc(var(--u)*2.1);color:#9aa8bd;border:1px dashed #cdd8e6;border-radius:calc(var(--u)*1.8);padding:calc(var(--u)*1.2);margin-top:calc(var(--u)*2.2)}
+
+  /* ═══ Modal de Pause — temático ═══ */
+  #overlay .pause-card{background:linear-gradient(180deg,#fff 0%,#eef4fb 100%);padding:calc(var(--u)*4.5) calc(var(--u)*4);border-radius:calc(var(--u)*5);max-width:72%;box-shadow:0 calc(var(--u)*1.2) 0 rgba(14,36,68,.2), 0 calc(var(--u)*0.4) calc(var(--u)*3) rgba(14,36,68,.15);text-align:center}
+  #overlay .pause-card .pause-icon{display:inline-block;background:linear-gradient(180deg,#ffb733,#f5a623);width:calc(var(--u)*10);height:calc(var(--u)*10);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto calc(var(--u)*2);box-shadow:0 calc(var(--u)*0.6) 0 #c4881a, 0 calc(var(--u)*0.3) calc(var(--u)*1.5) rgba(200,150,30,.3)}
+  #overlay .pause-card .pause-icon .ico-svg{width:calc(var(--u)*5);height:calc(var(--u)*5);stroke:#fff;stroke-width:2.5}
+  #overlay .pause-card h1{margin:0 0 calc(var(--u)*3.5);font-size:calc(var(--u)*4.8);color:#1e3250}
+  #overlay .pause-card .btn-row{display:flex;flex-direction:column;gap:calc(var(--u)*1.5);align-items:center}
+  #overlay .pause-card .btn{width:100%;max-width:calc(var(--u)*38);font-size:calc(var(--u)*3.2);padding:calc(var(--u)*1.8) calc(var(--u)*3);display:flex;align-items:center;justify-content:center;gap:calc(var(--u)*1.4);margin:0}
+  #overlay .pause-card .btn .ico-svg{width:calc(var(--u)*3.4);height:calc(var(--u)*3.4);stroke:#fff;stroke-width:2.5;fill:none}
+  #overlay .pause-card .btn.play-btn{background:linear-gradient(180deg,#43d66c,#2eb84d);box-shadow:0 calc(var(--u)*0.7) 0 #1a8c33}
+  #overlay .pause-card .btn.sound-btn{background:linear-gradient(180deg,#6b9ed8,#4a7ec0);box-shadow:0 calc(var(--u)*0.7) 0 #2d5a94}
+  #overlay .pause-card .btn.restart-btn{background:linear-gradient(180deg,#ff8c6b,#e05540);box-shadow:0 calc(var(--u)*0.7) 0 #a03528}
+  #overlay .pause-card .tips{font-size:calc(var(--u)*2.3);color:#7a8da5;margin-top:calc(var(--u)*3);line-height:1.5}
 </style>
 </head>
 <body>
+
+<!-- ═══ SVG Icon Sprite ═══ -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="ico-gear" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M12 1l2.4 5.2 5.7.8-4.1 4 .9 5.7L12 14.3 7.1 16.7l1-5.7-4.1-4 5.7-.8z"/>
+  </symbol>
+  <symbol id="ico-trophy" viewBox="0 0 24 24">
+    <path d="M6 3h12v3a4 4 0 0 1-4 4h-1v2.2a5 5 0 0 1 4 4.8H7a5 5 0 0 1 4-4.8V10H10a4 4 0 0 1-4-4V3z"/>
+    <rect x="8" y="20" width="8" height="2" rx="1"/>
+    <rect x="10" y="17" width="4" height="3" rx="0.5"/>
+  </symbol>
+  <symbol id="ico-diamond" viewBox="0 0 24 24">
+    <path d="M12 2l3.5 6 6.5 2-6.5 2-3.5 6-3.5-6L2 10l6.5-2z"/>
+  </symbol>
+  <symbol id="ico-pause" viewBox="0 0 24 24">
+    <rect x="5" y="4" width="5" height="16" rx="1.5"/>
+    <rect x="14" y="4" width="5" height="16" rx="1.5"/>
+  </symbol>
+  <symbol id="ico-play" viewBox="0 0 24 24">
+    <path d="M6 4l15 8-15 8z"/>
+  </symbol>
+  <symbol id="ico-plus" viewBox="0 0 24 24">
+    <line x1="12" y1="5" x2="12" y2="19"/>
+    <line x1="5" y1="12" x2="19" y2="12"/>
+  </symbol>
+  <symbol id="ico-speaker" viewBox="0 0 24 24">
+    <polygon points="2,9 7,9 12,5 12,19 7,15 2,15"/>
+    <path d="M15.5 8.5a5 5 0 0 1 0 7"/>
+    <path d="M18.5 5.5a9 9 0 0 1 0 13"/>
+  </symbol>
+  <symbol id="ico-speaker-mute" viewBox="0 0 24 24">
+    <polygon points="2,9 7,9 12,5 12,19 7,15 2,15"/>
+    <line x1="16" y1="9" x2="22" y2="15"/>
+    <line x1="22" y1="9" x2="16" y2="15"/>
+  </symbol>
+  <symbol id="ico-restart" viewBox="0 0 24 24">
+    <path d="M3 4v6h6"/>
+    <path d="M21 20v-6h-6"/>
+    <path d="M20.5 9A9 9 0 0 0 5.6 5.6L3 8m18 8l-2.6 2.4A9 9 0 0 1 3.5 15"/>
+  </symbol>
+  <symbol id="ico-shake" viewBox="0 0 24 24">
+    <path d="M3 2v5h2V4h3V2H3zm16 0v2h3v3h2V2h-5zM3 22v-5h2v3h3v2H3zm16 0v-2h3v-3h2v5h-5zM6 6h4v4H6zM14 14h4v4h-4zM10 10h4v4h-4z"/>
+  </symbol>
+  <symbol id="ico-close" viewBox="0 0 24 24">
+    <line x1="6" y1="6" x2="18" y2="18"/>
+    <line x1="18" y1="6" x2="6" y2="18"/>
+  </symbol>
+</svg>
+
 <div id="wrap"><div id="stage">
   <div id="panelFrame"></div>
   <canvas id="game"></canvas>
   <canvas id="fx"></canvas>
 
   <div id="topbar">
-    <button class="icobtn" id="gearBtn" aria-label="ajustes">⚙️</button>
     <div class="pillrow">
-      <div class="pill"><span class="ico">🏆</span><b id="score">0</b></div>
-      <div class="pill"><span class="ico">💎</span><b id="gems">0</b><button class="plus" id="gemPlus" aria-label="mais gemas">+</button></div>
+      <div class="pill">
+        <svg class="ico-svg"><use href="#ico-trophy"/></svg>
+        <b id="score">0</b>
+      </div>
+      <div class="pill">
+        <svg class="ico-svg"><use href="#ico-diamond"/></svg>
+        <b id="gems">0</b>
+        <button class="plus" id="gemPlus" aria-label="mais gemas">
+          <svg class="ico-svg"><use href="#ico-plus"/></svg>
+        </button>
+      </div>
     </div>
-    <button class="icobtn" id="pauseBtn" aria-label="pausar">⏸️</button>
+    <button class="icobtn" id="pauseBtn" aria-label="pausar">
+      <svg class="ico-svg"><use href="#ico-pause"/></svg>
+    </button>
   </div>
 
   <div id="tray"></div>
-  <button id="shakeBtn">📺 chacoalhar</button>
+  <button id="shakeBtn">
+    <span class="shake-inner">
+      <svg class="ico-svg"><use href="#ico-shake"/></svg>
+      CHACOALHAR
+    </span>
+  </button>
   <div id="overlay"></div>
 </div></div>
 <script src="js/matter.min.js"></script>

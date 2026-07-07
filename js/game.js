@@ -102,6 +102,7 @@ let gems = +(localStorage.getItem('toydrop_gems')||0);
 let combo = 0, lastMergeAt = -9e9;
 let discovered = [true,true,false,false,false,false,false,false];
 let goalTotal = 0, goalLeft = 0, goalDone = false;   // objetivo: mesclar todas as peças marcadas do castelo
+let goalCelebUntil = 0;   // timestamp até quando mostrar a comemoração de tabuleiro limpo
 let dangerT = 0, usedShake = false;
 let particles = [], popups = [], chars = [], rings = [], fxConf = [];
 let pendingMerges = [];
@@ -548,10 +549,19 @@ function checkGoal(){
   if(goalLeft === 0 && goalTotal > 0){
     goalDone = true;
     gems += 50; localStorage.setItem('toydrop_gems', gems); syncScore();
-    popups.push({x:W/2, y:DANGER_Y+70, text:'TABULEIRO LIMPO!', kind:'info', life:1.4, size:28, color:'#7BE07B', t0:performance.now()});
-    for(let i=0;i<80;i++) burstFx(W/2+(Math.random()-.5)*260, DANGER_Y+140, CONFETTI[i%6], 1);
+    const now = performance.now();
+    goalCelebUntil = now + 3000;   // 3 segundos de comemoração na tela
+    // Efeito dramático: slow-motion + tremor
+    targetTS = .35; camShake = Math.max(camShake, 10);
+    setTimeout(()=>{ targetTS = 1; }, 800);
+    // Primeira onda de confete
+    for(let i=0;i<150;i++) burstFx(W/2+(Math.random()-.5)*300, DANGER_Y+140+(Math.random()-.5)*60, CONFETTI[i%6], 1);
+    // Segunda onda de confete com atraso
+    setTimeout(()=>{
+      for(let i=0;i<100;i++) burstFx(W/2+(Math.random()-.5)*320, DANGER_Y+120+(Math.random()-.5)*80, CONFETTI[i%6], 1);
+    }, 400);
     sGoal();
-    setTimeout(()=>{ if(state!=='over') nextBoard(); }, 1200);
+    setTimeout(()=>{ if(state!=='over') nextBoard(); }, 3000);
   }
 }
 function nextBoard(){   // novo castelo de peças marcadas — score e gemas ficam
@@ -687,29 +697,35 @@ function doGameOver(){
 function pause(){
   if(state!=='play') return;
   state = 'paused';
-  showOverlay('<h1>pausado</h1><button class="btn" id="resumeBtn">continuar</button>');
+  setPauseIcon('ico-play');
+  const soundLabel = muted ? 'Som Desligado' : 'Som Ligado';
+  overlay.innerHTML =
+    '<div class="pause-card">'+
+      '<div class="pause-icon"><svg class="ico-svg"><use href="#ico-pause"/></svg></div>'+
+      '<h1>PAUSADO</h1>'+
+      '<div class="btn-row">'+
+        '<button class="btn play-btn" id="resumeBtn"><svg class="ico-svg"><use href="#ico-play"/></svg> Continuar</button>'+
+        '<button class="btn sound-btn" id="muteBtn"><svg class="ico-svg"><use href="#'+(muted?'ico-speaker-mute':'ico-speaker')+'"/></svg> '+soundLabel+'</button>'+
+        '<button class="btn restart-btn" id="restartBtn"><svg class="ico-svg"><use href="#ico-restart"/></svg> Reiniciar</button>'+
+      '</div>'+
+      '<div class="tips">arraste para mirar · solte para largar<br>junte blocos iguais para fundir!</div>'+
+    '</div>';
+  overlay.style.display='flex';
   $('resumeBtn').addEventListener('click', resume);
-}
-function resume(){ if(state==='paused'){ hideOverlay(); state='play'; } }
-function settings(){
-  if(state!=='play' && state!=='paused') return;
-  const wasPlay = state==='play'; if(wasPlay) state='paused';
-  showOverlay('<h1>ajustes</h1>'+
-    '<p>arraste para mirar · solte para largar<br>mescle todas as peças marcadas ⚪</p>'+
-    '<div class="row"><button class="btn alt" id="muteBtn">'+(muted?'🔇 som off':'🔊 som on')+'</button>'+
-    '<button class="btn" id="resumeBtn2">voltar</button></div>'+
-    '<button class="btn alt" id="restartBtn" style="margin-top:var(--u)">reiniciar</button>');
   $('muteBtn').addEventListener('click', ()=>{
     muted=!muted; localStorage.setItem('toydrop_mute', muted?'1':'0');
-    $('muteBtn').textContent = muted?'🔇 som off':'🔊 som on';
+    const label = muted ? 'Som Desligado' : 'Som Ligado';
+    const icon = muted ? 'ico-speaker-mute' : 'ico-speaker';
+    $('muteBtn').innerHTML = '<svg class="ico-svg"><use href="#'+icon+'"/></svg> '+label;
   });
-  $('resumeBtn2').addEventListener('click', ()=>{ hideOverlay(); state = wasPlay?'play':'paused'; if(!wasPlay) pause(); });
   $('restartBtn').addEventListener('click', ()=>{ hideOverlay(); restart(); });
 }
+function resume(){ if(state==='paused'){ hideOverlay(); state='play'; setPauseIcon('ico-pause'); } }
+function setPauseIcon(id){ const u=$('pauseBtn').querySelector('use'); if(u) u.setAttribute('href','#'+id); }
 function restart(){
   for(const b of [...pieces]) removeBody(b);
   particles=[]; popups=[]; chars=[]; rings=[]; fxConf=[]; pendingMerges=[];
-  score=0; combo=0; drops=0; dangerT=0; usedShake=false; camShake=0; targetTS=1; timeScale=1; gameClock=0;
+  score=0; combo=0; drops=0; dangerT=0; usedShake=false; camShake=0; targetTS=1; timeScale=1; gameClock=0; goalCelebUntil=0;
   stash=null; holdUsed=false;
   discovered = [true,true,false,false,false,false,false,false];
   queue = []; refillQueue(); newCurrent();
@@ -717,14 +733,13 @@ function restart(){
   syncScore();
   setupInitialBoard();
   resetGoal();
-  hideOverlay(); state = 'play'; SDK.gameplayStart();
+  hideOverlay(); state = 'play'; setPauseIcon('ico-pause'); SDK.gameplayStart();
 }
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden) pause(); });
 
 document.addEventListener('pointerdown', e=>{   // clique em qualquer botão do layout
   if(e.target.closest('button')){ audioInit(); sfx(aBtn); }
 }, true);
-$('gearBtn').addEventListener('click', settings);
 $('pauseBtn').addEventListener('click', ()=>{ if(state==='paused') resume(); else pause(); });
 $('gemPlus').addEventListener('click', ()=>{
   popups.push({x:W/2, y:DANGER_Y+40, text:'loja em breve', kind:'info', life:1, size:20, color:'#FFFFFF', t0:performance.now()});
@@ -876,6 +891,74 @@ ctx.clip();
     ctx.restore();
   }
   // popups (combo/pontos/objetivo) são desenhados na camada FX, sem recorte — ver renderFX
+
+  // ═══ Comemoração de tabuleiro limpo (desenhada direto, sem drift) ═══
+  if(goalCelebUntil && now < goalCelebUntil && state==='play'){
+    const remaining = goalCelebUntil - now;
+    const total = 3000;
+    const progress = 1 - remaining / total;   // 0 → 1 ao longo dos 3s
+    // Fade-in rápido, fade-out suave no final
+    let alpha = 1;
+    if(progress < 0.08) alpha = progress / 0.08;                    // fade-in nos primeiros 240ms
+    else if(progress > 0.75) alpha = 1 - (progress - 0.75) / 0.25;  // fade-out nos últimos 750ms
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+    // Fundo escuro semi-transparente atrás do texto (faixa horizontal)
+    const bandY = DANGER_Y + 72;
+    const bandH = 110;
+    const bandGrad = ctx.createLinearGradient(0, bandY - bandH/2, 0, bandY + bandH/2);
+    bandGrad.addColorStop(0, 'rgba(18,38,74,0)');
+    bandGrad.addColorStop(0.3, 'rgba(18,38,74,0.65)');
+    bandGrad.addColorStop(0.7, 'rgba(18,38,74,0.65)');
+    bandGrad.addColorStop(1, 'rgba(18,38,74,0)');
+    ctx.fillStyle = bandGrad;
+    ctx.fillRect(0, bandY - bandH/2, W, bandH);
+
+    // Escala com bounce (ease-out-back)
+    const sc = .5 + .5 * eob(Math.min(1, progress / 0.15));   // scale-in nos primeiros 450ms
+
+    ctx.save();
+    ctx.translate(W/2, bandY - 8);
+    ctx.scale(sc, sc);
+
+    // "PARABÉNS!" — grande e dourado
+    ctx.font = '400 52px "Lilita One", sans-serif';
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = 'rgba(18,38,74,.85)';
+    ctx.lineJoin = 'round';
+    ctx.strokeText('PARABÉNS!', 0, 0);
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.strokeText('PARABÉNS!', 0, 0);
+    // Preenchimento com gradiente dourado
+    const textGrad = ctx.createLinearGradient(0, -26, 0, 26);
+    textGrad.addColorStop(0, '#FFEE88');
+    textGrad.addColorStop(0.5, '#FFCC2F');
+    textGrad.addColorStop(1, '#F5A623');
+    ctx.fillStyle = textGrad;
+    ctx.fillText('PARABÉNS!', 0, 0);
+
+    ctx.restore();
+
+    // "Tabuleiro Limpo!" — menor, abaixo
+    ctx.font = '400 22px "Lilita One", sans-serif';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'rgba(18,38,74,.8)';
+    ctx.lineJoin = 'round';
+    ctx.strokeText('Tabuleiro Limpo!', W/2, bandY + 40);
+    ctx.fillStyle = '#7BE07B';
+    ctx.fillText('Tabuleiro Limpo!', W/2, bandY + 40);
+
+    // +50 gemas
+    ctx.font = '400 18px "Lilita One", sans-serif';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText('💎 +50', W/2, bandY + 66);
+
+    ctx.restore();
+  }
 
   if(drops===0 && state==='play'){
     ctx.font = '800 20px -apple-system, sans-serif';
@@ -1031,7 +1114,7 @@ function frame(now){
 
     let pileTop = H;
     for(const b of pieces) if(b.plugin.snapped) pileTop = Math.min(pileTop, b.bounds.min.y);
-    $('shakeBtn').style.display = (!usedShake && pileTop < DANGER_Y+150) ? 'block' : 'none';
+    $('shakeBtn').classList.toggle('visible', !usedShake && pileTop < DANGER_Y+150);
   }
 
   for(const p of particles){ p.x+=p.vx; p.y+=p.vy; p.vy+=.25; p.rot+=p.vr; p.life-=dt/650; }
