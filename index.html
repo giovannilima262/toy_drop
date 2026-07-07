@@ -71,7 +71,6 @@
   }
   #startOverlay .sub{font:400 calc(var(--u)*2.8) "Lilita One",sans-serif;color:rgba(255,255,255,.7);text-shadow:0 calc(var(--u)*0.2) calc(var(--u)*0.6) rgba(0,0,0,.3);margin:0 0 calc(var(--u)*6);letter-spacing:.06em;animation:subIn .5s .3s cubic-bezier(.34,1.56,.64,1) both}
   @keyframes subIn{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
-  #playBtn{animation:btnIn .5s .4s cubic-bezier(.34,1.56,.64,1) both, playPulse 2.2s 1s ease-in-out infinite}
   @keyframes btnIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
   /* Personagens espalhados em volta do título */
   #titleArea{position:relative;display:flex;flex-direction:column;align-items:center}
@@ -93,12 +92,12 @@
   .c4 img{animation:charJump 4.4s ease-in-out infinite 1.6s}
   .c5{top:calc(var(--u)*-8);right:calc(var(--u)*-20);width:calc(var(--u)*9);height:calc(var(--u)*9);transform:rotate(-30deg);animation-delay:.9s}
   .c5 img{animation:charJump 3.8s ease-in-out infinite 2.2s}
-  #playBtn{width:calc(var(--u)*17);height:calc(var(--u)*17);border-radius:50%;background:linear-gradient(180deg,#4de073,#2eb84d);border:calc(var(--u)*0.7) solid rgba(255,255,255,.3);color:#fff;cursor:pointer;box-shadow:0 calc(var(--u)*1.2) 0 #1a8c33, 0 calc(var(--u)*0.7) calc(var(--u)*3.5) rgba(0,0,0,.4), 0 0 calc(var(--u)*6) rgba(46,184,77,.35);display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s;animation:playPulse 2.2s ease-in-out infinite}
-  #playBtn:active{transform:scale(.92);box-shadow:0 calc(var(--u)*0.5) 0 #1a8c33, 0 calc(var(--u)*0.3) calc(var(--u)*2) rgba(0,0,0,.35)}
-  #playBtn .ico-svg{width:calc(var(--u)*7);height:calc(var(--u)*7);stroke:#fff;stroke-width:2.5;fill:#fff;margin-left:calc(var(--u)*1)}
+  #playBtn{width:calc(var(--u)*19);height:calc(var(--u)*19);border-radius:50%;background:linear-gradient(180deg,#5be87d 0%,#3dd15c 40%,#2eb84d 100%);border:0;color:#fff;cursor:pointer;box-shadow:0 calc(var(--u)*0.6) calc(var(--u)*2.5) rgba(0,0,0,.25), 0 0 0 calc(var(--u)*1.5) rgba(46,184,77,.15), 0 0 calc(var(--u)*6) rgba(46,184,77,.25);display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s;animation:btnIn .5s .4s cubic-bezier(.34,1.56,.64,1) both, playPulse 2.4s .9s ease-in-out infinite}
+  #playBtn:active{transform:scale(.9);box-shadow:0 calc(var(--u)*0.3) calc(var(--u)*1) rgba(0,0,0,.2), 0 0 0 calc(var(--u)*1) rgba(46,184,77,.1), 0 0 calc(var(--u)*3) rgba(46,184,77,.15)}
+  #playBtn .ico-svg{width:calc(var(--u)*8);height:calc(var(--u)*8);stroke:#fff;stroke-width:2.2;fill:#fff;margin-left:calc(var(--u)*1.2);filter:drop-shadow(0 calc(var(--u)*0.2) calc(var(--u)*0.4) rgba(0,0,0,.15))}
   @keyframes playPulse{
-    0%,100%{box-shadow:0 calc(var(--u)*1.2) 0 #1a8c33, 0 calc(var(--u)*0.7) calc(var(--u)*3.5) rgba(0,0,0,.4), 0 0 calc(var(--u)*6) rgba(46,184,77,.35)}
-    55%{box-shadow:0 calc(var(--u)*1.2) 0 #1a8c33, 0 calc(var(--u)*0.7) calc(var(--u)*5) rgba(0,0,0,.5), 0 0 calc(var(--u)*10) rgba(46,184,77,.55)}
+    0%,100%{box-shadow:0 calc(var(--u)*0.6) calc(var(--u)*2.5) rgba(0,0,0,.25), 0 0 0 calc(var(--u)*1.5) rgba(46,184,77,.15), 0 0 calc(var(--u)*6) rgba(46,184,77,.25)}
+    55%{box-shadow:0 calc(var(--u)*0.6) calc(var(--u)*3.5) rgba(0,0,0,.35), 0 0 0 calc(var(--u)*3) rgba(46,184,77,.3), 0 0 calc(var(--u)*11) rgba(46,184,77,.45)}
   }
 
   /* ═══ Overlay / Modais ═══ */
