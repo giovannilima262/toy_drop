@@ -109,6 +109,7 @@ let pendingMerges = [];
 const PANEL = { l:0.2315, t:0.193, w:0.537, h:0.616 };  // painel em % do stage (centrado)
 let camShake = 0, timeScale = 1, targetTS = 1;
 let gameClock = 0;   // tempo de simulação (soma dt por frame jogado): base do envelhecimento de perigo
+let winDismissTimer = null;   // timer do modal de vitória
 
 const randTier = ()=> SPAWN_POOL[(Math.random()*SPAWN_POOL.length)|0];
 const eob = q => 1 + 2.70158*Math.pow(q-1,3) + 1.70158*Math.pow(q-1,2);
@@ -578,7 +579,7 @@ function checkGoal(){
     goalDone = true;
     gems += 50; localStorage.setItem('toydrop_gems', gems); syncScore();
     const now = performance.now();
-    goalCelebUntil = now + 3000;   // 3 segundos de comemoração na tela
+    goalCelebUntil = now + 5000;   // 5 segundos de comemoração
     // Efeito dramático: slow-motion + tremor
     targetTS = .35; camShake = Math.max(camShake, 10);
     setTimeout(()=>{ targetTS = 1; }, 800);
@@ -588,8 +589,12 @@ function checkGoal(){
     setTimeout(()=>{
       for(let i=0;i<100;i++) burstFx(W/2+(Math.random()-.5)*320, DANGER_Y+120+(Math.random()-.5)*80, CONFETTI[i%6], 1);
     }, 400);
+    // Terceira onda
+    setTimeout(()=>{
+      for(let i=0;i<80;i++) burstFx(W/2+(Math.random()-.5)*340, DANGER_Y+130+(Math.random()-.5)*70, CONFETTI[i%6], 1);
+    }, 900);
     sGoal();
-    setTimeout(()=>{ if(state!=='over') nextBoard(); }, 3000);
+    showWinOverlay();
   }
 }
 function nextBoard(){   // novo castelo de peças marcadas — score e gemas ficam
@@ -626,8 +631,26 @@ function syncGoal(){
   const per = markedByTier();
   for(const s of goalSlots){
     const n = per[s.tier];
+    const wasDone = s.slot.classList.contains('done');
     s.bd.textContent = n>0 ? n : '✓';
     s.slot.classList.toggle('done', n===0);
+    // Acabou de completar → re-trigger animação + faíscas
+    if(!wasDone && n===0){
+      // Re-aplica a classe pra re-disparar a animação CSS
+      s.slot.classList.remove('done');
+      void s.slot.offsetWidth;   // força reflow
+      s.slot.classList.add('done');
+      // Faíscas verdes na região da bandeja (centro inferior do canvas)
+      const tx = W/2 + (Math.random()-.5)*80;
+      const ty = FLOOR_Y + 30;
+      for(let i=0;i<14;i++) fxConf.push({
+        x:tx+(Math.random()-.5)*40, y:ty-Math.random()*20,
+        vx:(Math.random()-.5)*8, vy:-4-Math.random()*8,
+        life:.8, color:i%2?'#37c463':'#FFEE88',
+        size:3+Math.random()*5, rot:Math.random()*6, vr:(Math.random()-.5)*.5
+      });
+      sTick();
+    }
   }
 }
 
@@ -757,10 +780,37 @@ function pause(){
 }
 function resume(){ if(state==='paused'){ hideOverlay(); state='play'; setPauseIcon('ico-pause'); } }
 function setPauseIcon(id){ const u=$('pauseBtn').querySelector('use'); if(u) u.setAttribute('href','#'+id); }
+function showWinOverlay(){
+  if(state!=='play') return;
+  const chars = ['a','b','d','e'];
+  overlay.innerHTML =
+    '<div class="win-wrap">'+
+      '<div class="win-card">'+
+        '<h1>PARABÉNS!</h1>'+
+        '<div class="wsub">Tabuleiro Limpo!</div>'+
+        '<div class="wgem">💎 +50</div>'+
+        '<div class="whint">toque para continuar</div>'+
+      '</div>'+
+      chars.map((c,i)=>'<span class="win-char wc'+(i+1)+'"><img src="assets/char_'+c+'.png" alt=""></span>').join('')+
+    '</div>';
+  overlay.classList.remove('hiding');
+  overlay.style.display='flex';
+  const dismiss = ()=>{
+    if(winDismissTimer){ clearTimeout(winDismissTimer); winDismissTimer = null; }
+    overlay.onclick = null;
+    hideOverlay();
+    if(state!=='over') nextBoard();
+  };
+  overlay.onclick = (e)=>{
+    if(e.target === overlay || e.target.closest('.win-wrap')) dismiss();
+  };
+  winDismissTimer = setTimeout(dismiss, 5000);
+}
 function restart(){
   for(const b of [...pieces]) removeBody(b);
   particles=[]; popups=[]; chars=[]; rings=[]; fxConf=[]; pendingMerges=[];
   score=0; combo=0; drops=0; dangerT=0; usedShake=false; camShake=0; targetTS=1; timeScale=1; gameClock=0; goalCelebUntil=0;
+  if(winDismissTimer){ clearTimeout(winDismissTimer); winDismissTimer = null; }
   stash=null; holdUsed=false;
   discovered = [true,true,false,false,false,false,false,false];
   queue = []; refillQueue(); newCurrent();
@@ -926,74 +976,6 @@ ctx.clip();
     ctx.restore();
   }
   // popups (combo/pontos/objetivo) são desenhados na camada FX, sem recorte — ver renderFX
-
-  // ═══ Comemoração de tabuleiro limpo (desenhada direto, sem drift) ═══
-  if(goalCelebUntil && now < goalCelebUntil && state==='play'){
-    const remaining = goalCelebUntil - now;
-    const total = 3000;
-    const progress = 1 - remaining / total;   // 0 → 1 ao longo dos 3s
-    // Fade-in rápido, fade-out suave no final
-    let alpha = 1;
-    if(progress < 0.08) alpha = progress / 0.08;                    // fade-in nos primeiros 240ms
-    else if(progress > 0.75) alpha = 1 - (progress - 0.75) / 0.25;  // fade-out nos últimos 750ms
-
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-
-    // Fundo escuro semi-transparente atrás do texto (faixa horizontal)
-    const bandY = DANGER_Y + 72;
-    const bandH = 110;
-    const bandGrad = ctx.createLinearGradient(0, bandY - bandH/2, 0, bandY + bandH/2);
-    bandGrad.addColorStop(0, 'rgba(18,38,74,0)');
-    bandGrad.addColorStop(0.3, 'rgba(18,38,74,0.65)');
-    bandGrad.addColorStop(0.7, 'rgba(18,38,74,0.65)');
-    bandGrad.addColorStop(1, 'rgba(18,38,74,0)');
-    ctx.fillStyle = bandGrad;
-    ctx.fillRect(0, bandY - bandH/2, W, bandH);
-
-    // Escala com bounce (ease-out-back)
-    const sc = .5 + .5 * eob(Math.min(1, progress / 0.15));   // scale-in nos primeiros 450ms
-
-    ctx.save();
-    ctx.translate(W/2, bandY - 8);
-    ctx.scale(sc, sc);
-
-    // "PARABÉNS!" — grande e dourado
-    ctx.font = '400 52px "Lilita One", sans-serif';
-    ctx.lineWidth = 8;
-    ctx.strokeStyle = 'rgba(18,38,74,.85)';
-    ctx.lineJoin = 'round';
-    ctx.strokeText('PARABÉNS!', 0, 0);
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.strokeText('PARABÉNS!', 0, 0);
-    // Preenchimento com gradiente dourado
-    const textGrad = ctx.createLinearGradient(0, -26, 0, 26);
-    textGrad.addColorStop(0, '#FFEE88');
-    textGrad.addColorStop(0.5, '#FFCC2F');
-    textGrad.addColorStop(1, '#F5A623');
-    ctx.fillStyle = textGrad;
-    ctx.fillText('PARABÉNS!', 0, 0);
-
-    ctx.restore();
-
-    // "Tabuleiro Limpo!" — menor, abaixo
-    ctx.font = '400 22px "Lilita One", sans-serif';
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = 'rgba(18,38,74,.8)';
-    ctx.lineJoin = 'round';
-    ctx.strokeText('Tabuleiro Limpo!', W/2, bandY + 40);
-    ctx.fillStyle = '#7BE07B';
-    ctx.fillText('Tabuleiro Limpo!', W/2, bandY + 40);
-
-    // +50 gemas
-    ctx.font = '400 18px "Lilita One", sans-serif';
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillText('💎 +50', W/2, bandY + 66);
-
-    ctx.restore();
-  }
 
   if(drops===0 && state==='play'){
     ctx.font = '800 20px -apple-system, sans-serif';
