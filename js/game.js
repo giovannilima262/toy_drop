@@ -17,12 +17,12 @@ const MAX_TIER = 7, CELEBRATE_PTS = 400;
 
 const PIECES = [null,
   { img:'t1', w:32,  h:22, color:'#FF5859', pts:0  },
-  { img:'t2', w:32,  h:36, color:'#FFCC2F', pts:2  },
-  { img:'t3', w:64,  h:36, color:'#1695ED', pts:5  },
-  { img:'t4', w:64,  h:64, color:'#56C46D', pts:10 },
-  { img:'t5', w:128, h:36, color:'#ECECEC', pts:20 },
-  { img:'t6', w:128, h:64, color:'#24242A', pts:40 },
-  { img:'t7', w:192, h:64, color:'#FFB733', pts:80 }
+  { img:'t2', w:32,  h:36, color:'#FFCC2F', pts:4  },
+  { img:'t3', w:64,  h:36, color:'#1695ED', pts:10 },
+  { img:'t4', w:64,  h:64, color:'#56C46D', pts:20 },
+  { img:'t5', w:128, h:36, color:'#ECECEC', pts:35 },
+  { img:'t6', w:128, h:64, color:'#24242A', pts:60 },
+  { img:'t7', w:192, h:64, color:'#FFB733', pts:100 }
 ];
 const CONFETTI = ['#FF5859','#FFCC2F','#1695ED','#56C46D','#ECECEC','#FFB733'];
 
@@ -99,7 +99,7 @@ let cur = null, queue = [], stash = null, holdUsed = false;
 let heldX = W/2, heldDrawX = W/2, heldSince = 0, nextAt = 0, drops = 0;
 let score = 0, best = +(localStorage.getItem('toydrop_best')||0);
 let gems = +(localStorage.getItem('toydrop_gems')||0);
-let combo = 0, lastMergeAt = -9e9;
+let combo = 0, lastMergeAt = -9e9, lastComboY = 0;
 let discovered = [true,true,false,false,false,false,false,false];
 let goalTotal = 0, goalLeft = 0, goalDone = false;   // objetivo: mesclar todas as peças marcadas do castelo
 let goalCelebUntil = 0;   // timestamp até quando mostrar a comemoração de tabuleiro limpo
@@ -482,13 +482,22 @@ function doMerge(a,b){
     sMerge(nt);
   }
   if(combo>1){
-    const cc = ['#FFE88C','#FFD54A','#FF9F40','#FF6B6B','#FF4FA3','#E040FB'];
+    const cc = [
+      {fill:'#FFE88C', stroke:'#B87613'},  // ×2 dourado claro
+      {fill:'#FFCC2F', stroke:'#B8860B'},  // ×3 amarelo ouro
+      {fill:'#FF9F40', stroke:'#C04000'},  // ×4 laranja
+      {fill:'#FF6B6B', stroke:'#B02030'},  // ×5 vermelho
+      {fill:'#FF4FA3', stroke:'#9B1060'},  // ×6 rosa
+      {fill:'#E040FB', stroke:'#6B1080'},  // ×7+ roxo
+    ];
     const ci = Math.min(combo-2, 5);
-    const sz = 28 + Math.min(combo, 8) * 3;
-    popups.push({x:mx, y:my-48, text:'COMBO ×'+combo, kind:'combo', life:1.5 + combo*0.15,
-      size:sz, color:cc[ci], t0:now});
-    // Partículas extras para combos maiores
-    if(combo>=3) burstFx(mx, my-30, cc[ci], 8 + combo*3);
+    const sz = 28 + Math.min(combo, 8) * 3.5;
+    // Força cada combo mais acima que o anterior, sem sobrepor
+    if(combo===2) lastComboY = my - 50;
+    else lastComboY -= sz * 0.8;
+    popups.push({x:mx, y:lastComboY, text:'×'+combo, kind:'combo', life:1.6 + combo*0.15,
+      size:sz, color:cc[ci].fill, stroke:cc[ci].stroke, t0:now});
+    if(combo>=3) burstFx(mx, my-30, cc[ci].fill, 8 + combo*3);
     if(combo>=5){ camShake = Math.max(camShake, combo*0.7); targetTS = Math.max(.3, .9 - combo*.08); setTimeout(()=>{ targetTS = 1; }, 300); }
   }
   checkGoal();
@@ -516,7 +525,7 @@ function onCollide(e){
 function addScore(pts, x, y){
   if(pts<=0) return;
   score += pts; syncScore();
-  popups.push({x, y:y-20, text:'+'+pts, kind:'score', life:1, size:17, color:'#FFFFFF', t0:performance.now()});
+  popups.push({x, y:y-20, text:'+'+pts, kind:'score', life:1, size:22, color:'#FFFFFF', t0:performance.now()});
   if(score>best){ best=score; localStorage.setItem('toydrop_best', best); }
 }
 function burst(x,y,color,n){
@@ -1192,11 +1201,11 @@ function renderFX(now){   // camada full-stage, sem recorte: comemoração, ané
     fctx.translate(p.x, p.y);
     fctx.lineJoin = 'round';
     if(p.kind==='combo'){
-      fctx.rotate(Math.sin(age/70)*0.05);
+      fctx.rotate(Math.sin(age/80)*0.04);
       fctx.scale(sc, sc);
       fctx.font = '400 '+p.size+'px "Lilita One", sans-serif';
-      fctx.lineWidth = 7; fctx.strokeStyle = 'rgba(18,38,74,.92)'; fctx.strokeText(p.text,0,0);
-      fctx.lineWidth = 3.5; fctx.strokeStyle = '#fff'; fctx.strokeText(p.text,0,0);
+      fctx.lineWidth = 6; fctx.strokeStyle = p.stroke||'rgba(14,30,55,.7)'; fctx.strokeText(p.text,0,0);
+      fctx.lineWidth = 2.5; fctx.strokeStyle = 'rgba(255,255,255,.85)'; fctx.strokeText(p.text,0,0);
       fctx.fillStyle = p.color; fctx.fillText(p.text,0,0);
     } else if(p.kind==='info'){
       fctx.scale(sc, sc);
@@ -1205,7 +1214,8 @@ function renderFX(now){   // camada full-stage, sem recorte: comemoração, ané
       fctx.fillStyle = p.color; fctx.fillText(p.text,0,0);
     } else {
       fctx.font = '400 '+Math.round(p.size*sc)+'px "Lilita One", sans-serif';
-      fctx.lineWidth = 4; fctx.strokeStyle = 'rgba(18,38,74,.65)'; fctx.strokeText(p.text,0,0);
+      fctx.lineWidth = 5; fctx.strokeStyle = 'rgba(18,38,74,.7)'; fctx.strokeText(p.text,0,0);
+      fctx.lineWidth = 2; fctx.strokeStyle = 'rgba(255,255,255,.6)'; fctx.strokeText(p.text,0,0);
       fctx.fillStyle = p.color; fctx.fillText(p.text,0,0);
     }
     fctx.restore();
