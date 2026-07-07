@@ -601,6 +601,7 @@ function nextBoard(){   // novo castelo de peças marcadas — score e gemas fic
   for(const b of [...pieces]) removeBody(b);
   pendingMerges = [];
   setupInitialBoard();
+  animateInitialBoard();
   resetGoal();
 }
 
@@ -825,6 +826,7 @@ function restart(){
   setupInitialBoard();
   resetGoal();
   hideOverlay(); state = 'play'; setPauseIcon('ico-pause'); SDK.gameplayStart();
+  animateInitialBoard();
 }
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden) pause(); });
 
@@ -885,7 +887,7 @@ function drawPiece(b, now){
   let flash = 0;
   if(b.plugin.pop){
     const t = now-b.plugin.pop;
-    if(t<280){ const q=t/280; const s=Math.max(.45,.45+.55*eob(q)); sx*=s; sy*=s; flash=Math.max(0,.5*(1-t/110)); }
+    if(t<280){ const q=t/280; const s=Math.max(0, eob(q)); sx*=s; sy*=s; if(!b.plugin.initial) flash=Math.max(0,.5*(1-t/110)); }
     else b.plugin.pop = 0;
   }
   ctx.save();
@@ -900,8 +902,8 @@ function drawPiece(b, now){
     ctx.beginPath(); ctx.roundRect(-p.w/2, -p.h, p.w, p.h, 4); ctx.fill();
     ctx.globalAlpha = 1;
   }
-  // Peças iniciais: retângulo arredondado central
-  if(b.plugin.initial){
+  // Peças iniciais: retângulo arredondado central (só depois do pop-in)
+  if(b.plugin.initial && !b.plugin.pop){
     ctx.fillStyle = 'rgba(255,255,255,0.65)';
     ctx.beginPath(); ctx.roundRect(-5, -p.h/2 + 1, 10, 6, 2.5); ctx.fill();
   }
@@ -1342,6 +1344,34 @@ function setupInitialBoard(){
   }
 }
 
+function animateInitialBoard(){
+  // Pega todas as peças iniciais, ordena de baixo pra cima
+  // e dispara pop-in escalonado (efeito "brotando" do chão)
+  const init = pieces.filter(b=>b.plugin.initial && !b.plugin.dead);
+  if(!init.length) return;
+  // Ordena por Y decrescente: peças mais baixas (maior Y) primeiro
+  init.sort((a,b)=>b.position.y - a.position.y);
+  const now = performance.now();
+  // Agrupa por camada (peças com Y similar brotam juntas)
+  const layers = [];
+  let curLayer = [], curY = null;
+  for(const b of init){
+    if(curY===null || Math.abs(b.position.y-curY) < 20){
+      curLayer.push(b);
+    } else {
+      layers.push(curLayer);
+      curLayer = [b];
+    }
+    curY = b.position.y;
+  }
+  if(curLayer.length) layers.push(curLayer);
+  // Atribui timestamps escalonados: ~90ms entre camadas
+  layers.forEach((layer, i)=>{
+    const t = now + 150 + i*90;   // 150ms de delay inicial + 90ms por camada
+    for(const b of layer) b.plugin.pop = t;
+  });
+}
+
 /* ---------- Boot ---------- */
 loadImages().then(()=>{
   fit();
@@ -1349,9 +1379,9 @@ loadImages().then(()=>{
   syncScore();
   setupInitialBoard();
   resetGoal();
-  // Tela inicial: renderiza um frame parado e mostra overlay com play
-  drawScene(false, performance.now());
-  renderFX(performance.now());
+  animateInitialBoard();
+  // Loop já roda na tela inicial — peças animam no menu
+  requestAnimationFrame(loop);
   const startOverlay = document.getElementById('startOverlay');
   const playBtn = document.getElementById('playBtn');
   playBtn.addEventListener('click', ()=>{
@@ -1361,7 +1391,6 @@ loadImages().then(()=>{
     startOverlay.classList.add('hiding');
     setTimeout(()=>{ startOverlay.remove(); }, 500);
     SDK.gameplayStart();
-    requestAnimationFrame(loop);
   });
 }).catch(err=>{
   document.body.innerHTML = '<p style="color:#fff;text-align:center;margin-top:40vh">erro: '+err.message+'</p>';
