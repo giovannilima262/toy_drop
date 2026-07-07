@@ -1078,9 +1078,6 @@ ctx.clip();
     ctx.lineWidth = 3; ctx.setLineDash([8,8]);
     ctx.beginPath(); ctx.moveTo(INNER_L, DANGER_Y); ctx.lineTo(INNER_R, DANGER_Y); ctx.stroke();
     ctx.setLineDash([]);
-    const va = .05+.06*Math.sin(now/130)+.14*(dangerT/1400);
-    ctx.fillStyle = 'rgba(255,60,60,'+Math.max(0,va)+')';
-    ctx.fillRect(0,0,W,120);
   }
 
   for(const p of particles){
