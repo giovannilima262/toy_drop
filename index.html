@@ -39,6 +39,7 @@
   .pillrow{display:flex;gap:calc(var(--u)*1.8)}
   .pill{position:relative;display:flex;align-items:center;gap:calc(var(--u)*1.2);background:rgba(255,255,255,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1.5px solid rgba(255,255,255,.28);border-radius:999px;padding:calc(var(--u)*0.8) calc(var(--u)*2.2);box-shadow:0 calc(var(--u)*0.5) calc(var(--u)*1.2) rgba(8,30,70,.25), inset 0 1px 0 rgba(255,255,255,.15);color:#fff;min-width:calc(var(--u)*10)}
   .pill .ico-svg{width:calc(var(--u)*3.6);height:calc(var(--u)*3.6)}
+	  .pill-char{width:calc(var(--u)*3.6);height:calc(var(--u)*3.6);object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
   .pill b{font-size:calc(var(--u)*3.4);font-weight:800;letter-spacing:.02em;text-shadow:0 1px 2px rgba(0,0,0,.15)}
 
   /* Botão + nas gemas */
@@ -283,15 +284,12 @@
   <div id="topbar">
     <div class="pillrow">
       <div class="pill">
-        <svg class="ico-svg filled"><use href="#ico-trophy"/></svg>
+        <svg class="ico-svg filled"><circle cx="12" cy="12" r="5" fill="white"/></svg>
         <b id="score">0</b>
       </div>
       <div class="pill">
-        <svg class="ico-svg filled"><use href="#ico-diamond"/></svg>
-        <b id="gems">0</b>
-        <button class="plus" id="gemPlus" aria-label="mais gemas">
-          <svg class="ico-svg"><use href="#ico-plus"/></svg>
-        </button>
+        <img src="assets/char_a.png" class="pill-char" alt="">
+        <b id="charsCount">0</b>
       </div>
     </div>
     <button class="icobtn" id="pauseBtn" aria-label="pausar">

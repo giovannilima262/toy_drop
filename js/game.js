@@ -125,6 +125,7 @@ let cur = null, queue = [], stash = null, holdUsed = false;
 let heldX = W/2, heldDrawX = W/2, heldSince = 0, nextAt = 0, drops = 0;
 let score = 0, best = +(localStorage.getItem('toydrop_best')||0);
 let gems = +(localStorage.getItem('toydrop_gems')||0);
+let charsCollected = +(localStorage.getItem('toydrop_chars')||0);   // peças especiais acumuladas (tier-7 merges)
 let combo = 0, lastMergeAt = -9e9;
 let discovered = [true,true,false,false,false,false,false,false];
 let goalTotal = 0, goalLeft = 0, goalDone = false;   // objetivo: mesclar todas as peças marcadas do castelo
@@ -586,7 +587,10 @@ function celebrate(x,y){
   chars.push({img:c, x, y:y-20, vx:(Math.random()-.5)*6, vy:-22, rot:0, vr:(Math.random()-.5)*.3, y0:y, bounces:0, squashT:0});
   for(let i=0;i<100;i++) burstFx(x+(Math.random()-.5)*120, y+(Math.random()-.5)*50, CONFETTI[i%6], 1);
   discovered[MAX_TIER] = true;
-  gems += 50; localStorage.setItem('toydrop_gems', gems); syncScore();
+  gems += 50; charsCollected++;
+  localStorage.setItem('toydrop_gems', gems);
+  localStorage.setItem('toydrop_chars', charsCollected);
+  syncScore();
   camShake = Math.max(camShake, 8);
   targetTS = .42;
   setTimeout(()=>{ targetTS = 1; }, 620);
@@ -634,7 +638,7 @@ function nextBoard(){   // novo castelo de peças marcadas — score e gemas fic
 /* ---------- HUD ---------- */
 const $ = id=>document.getElementById(id);
 function imgSrc(t){ return 'assets/'+PIECES[t].img+'.png'; }
-function syncScore(){ $('score').textContent = score.toLocaleString('pt-BR'); $('gems').textContent = gems.toLocaleString('pt-BR'); }
+function syncScore(){ $('score').textContent = score.toLocaleString('pt-BR'); if($('charsCount')) $('charsCount').textContent = charsCollected.toLocaleString('pt-BR'); }
 function markedByTier(){
   const per = [0,0,0,0,0,0,0,0];
   for(const b of pieces) if(b.plugin.initial && !b.plugin.dead) per[b.plugin.tier]++;
@@ -778,7 +782,7 @@ function fakeAd(kind, cb){
 }
 function doGameOver(){
   if(state!=='play') return;
-  TD.lastOver = {score, dangerT:Math.round(dangerT),
+  TD.lastOver = {score, dangerT:Math.round(dangerT), charsCollected,
     pecas: pieces.map(b=>({t:b.plugin.tier, x:Math.round(b.position.x), y:Math.round(b.position.y), minY:Math.round(b.bounds.min.y), snap:!!b.plugin.snapped}))};
   state = 'over'; SDK.gameplayStop(); sOver(); camShake = 6;
   const rec = score>=best && score>0;
@@ -787,9 +791,9 @@ function doGameOver(){
     '<div class="pause-wrap">'+
       '<div class="pause-card">'+
         '<h1>'+(rec?'NOVO RECORDE!':'FIM DE JOGO')+'</h1>'+
-        (rec?'<div class="go-record">🏆 '+best.toLocaleString('pt-BR')+'</div>':'')+
+        (rec?'<div class="go-record">🏆 '+best.toLocaleString('pt-BR')+' pts</div>':'')+
         '<div class="go-score">'+score.toLocaleString('pt-BR')+'</div>'+
-        '<div class="go-sub">recorde '+best.toLocaleString('pt-BR')+' · 💎 '+gems.toLocaleString('pt-BR')+'</div>'+
+        '<div class="go-sub">recorde '+best.toLocaleString('pt-BR')+' · 🧩 '+charsCollected.toLocaleString('pt-BR')+'</div>'+
         '<div class="btn-row">'+
           '<button class="btn play-btn" id="againBtn"><svg class="ico-svg"><use href="#ico-restart"/></svg> Jogar de Novo</button>'+
         '</div>'+
@@ -897,9 +901,6 @@ document.addEventListener('pointerdown', e=>{   // clique em qualquer botão do 
   if(e.target.closest('button')){ audioInit(); sfx(aBtn); }
 }, true);
 $('pauseBtn').addEventListener('click', ()=>{ if(state==='paused') resume(); else pause(); });
-$('gemPlus').addEventListener('click', ()=>{
-  popups.push({x:W/2, y:DANGER_Y+40, text:'loja em breve', kind:'info', life:1, size:20, color:'#FFFFFF', t0:performance.now()});
-});
 $('shakeBtn').addEventListener('click', ()=>{
   if(usedShake || state!=='play') return;
   SDK.rewarded(()=>{ shake(); usedShake=true; });
