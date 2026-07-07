@@ -93,7 +93,7 @@ Composite.add(engine.world, [
 ]);
 
 /* ---------- Estado ---------- */
-let state = 'play';
+let state = 'idle';   // 'idle' → tela inicial, 'play' → jogando
 let pieces = [];
 let cur = null, queue = [], stash = null, holdUsed = false;
 let heldX = W/2, heldDrawX = W/2, heldSince = 0, nextAt = 0, drops = 0;
@@ -1208,11 +1208,15 @@ function fit(){
   stage.classList.toggle('landscape', innerWidth/innerHeight > BASE_W/BASE_H);   // um fundo OU o outro
   const sw = BASE_W*s, sh = BASE_H*s;
   stage.style.width = sw+'px'; stage.style.height = sh+'px';
-  stage.style.setProperty('--u', (sw/100)+'px');
+  const su = (sw/100)+'px';
+  stage.style.setProperty('--u', su);
+  document.documentElement.style.setProperty('--u', su);
   const dpr = Math.min(2, window.devicePixelRatio||1);
   canvas.width = Math.round(W*dpr); canvas.height = Math.round(H*dpr);
   ctx.setTransform(dpr,0,0,dpr,0,0);
   fxCanvas.width = BASE_W; fxCanvas.height = BASE_H;   // camada de comemoração cobre a cena inteira
+  // Re-renderiza o frame estático se ainda estiver na tela inicial
+  if(state==='idle'){ drawScene(false, performance.now()); renderFX(performance.now()); }
 }
 window.addEventListener('resize', fit);
 
@@ -1288,8 +1292,19 @@ loadImages().then(()=>{
   syncScore();
   setupInitialBoard();
   resetGoal();
-  SDK.gameplayStart();
-  requestAnimationFrame(loop);
+  // Tela inicial: renderiza um frame parado e mostra overlay com play
+  drawScene(false, performance.now());
+  renderFX(performance.now());
+  const startOverlay = document.getElementById('startOverlay');
+  const playBtn = document.getElementById('playBtn');
+  playBtn.addEventListener('click', ()=>{
+    audioInit();
+    state = 'play';
+    startOverlay.classList.add('hiding');
+    setTimeout(()=>{ startOverlay.remove(); }, 500);
+    SDK.gameplayStart();
+    requestAnimationFrame(loop);
+  });
 }).catch(err=>{
   document.body.innerHTML = '<p style="color:#fff;text-align:center;margin-top:40vh">erro: '+err.message+'</p>';
 });

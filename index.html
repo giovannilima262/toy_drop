@@ -11,7 +11,7 @@
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-user-select:none;user-select:none}
   body{background:#2e6cb0 url(assets/background2.png) center/cover no-repeat;font-family:"Lilita One",sans-serif}
-  #wrap{height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  #wrap{height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#2e6cb0 url(assets/background2.png) center/cover no-repeat}
   #stage{position:relative;flex:none;background:#3a7ec2 url(assets/background.png) center/cover no-repeat;overflow:hidden}
   #stage.landscape{background:none}
   #panelFrame{position:absolute;left:21.45%;top:17.7%;width:57.1%;height:64.8%;border-radius:calc(var(--u)*5) calc(var(--u)*5) 0 0;background:#277bdc;border:calc(var(--u)*1.6) solid #4499f2;box-shadow:0 calc(var(--u)*1.5) calc(var(--u)*5) rgba(6,40,100,.45), inset 0 calc(var(--u)*0.6) calc(var(--u)*1.5) rgba(9,50,120,.35);z-index:2}
@@ -56,6 +56,23 @@
   #shakeBtn:active{transform:translateX(-50%) translateY(5%)!important;box-shadow:0 calc(var(--u)*0.6) calc(var(--u)*1.5) rgba(0,0,0,.2), 0 calc(var(--u)*0.2) calc(var(--u)*0.6) rgba(0,0,0,.15)}
   #shakeBtn .ico-svg{width:calc(var(--u)*3.4);height:calc(var(--u)*3.4)}
   .shake-inner{display:flex;align-items:center;gap:calc(var(--u)*1.2)}
+
+  /* ═══ Tela inicial ═══ */
+  #startOverlay{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(ellipse at center, transparent 30%, rgba(6,18,36,.25) 60%, rgba(6,18,36,.55) 100%);backdrop-filter:blur(0.5px);-webkit-backdrop-filter:blur(0.5px);transition:opacity .5s,backdrop-filter .5s}
+  #startOverlay.hiding{opacity:0;pointer-events:none;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0)}
+  #startOverlay h1{font:800 calc(var(--u)*11) "Lilita One",sans-serif;color:#FFD54A;text-shadow:0 calc(var(--u)*0.8) 0 rgba(160,100,15,.5), 0 calc(var(--u)*0.4) calc(var(--u)*2.5) rgba(0,0,0,.4), 0 0 calc(var(--u)*5) rgba(255,200,50,.25);margin:0 0 calc(var(--u)*1.5);letter-spacing:.06em;animation:titleFloat 3s ease-in-out infinite}
+  @keyframes titleFloat{
+    0%,100%{transform:translateY(0)}
+    50%{transform:translateY(calc(var(--u)*-1.2))}
+  }
+  #startOverlay .sub{font:400 calc(var(--u)*2.8) "Lilita One",sans-serif;color:rgba(255,255,255,.7);text-shadow:0 calc(var(--u)*0.2) calc(var(--u)*0.6) rgba(0,0,0,.3);margin:0 0 calc(var(--u)*6);letter-spacing:.06em}
+  #playBtn{width:calc(var(--u)*17);height:calc(var(--u)*17);border-radius:50%;background:linear-gradient(180deg,#4de073,#2eb84d);border:calc(var(--u)*0.7) solid rgba(255,255,255,.3);color:#fff;cursor:pointer;box-shadow:0 calc(var(--u)*1.2) 0 #1a8c33, 0 calc(var(--u)*0.7) calc(var(--u)*3.5) rgba(0,0,0,.4), 0 0 calc(var(--u)*6) rgba(46,184,77,.35);display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s;animation:playPulse 2.2s ease-in-out infinite}
+  #playBtn:active{transform:scale(.92);box-shadow:0 calc(var(--u)*0.5) 0 #1a8c33, 0 calc(var(--u)*0.3) calc(var(--u)*2) rgba(0,0,0,.35)}
+  #playBtn .ico-svg{width:calc(var(--u)*7);height:calc(var(--u)*7);stroke:#fff;stroke-width:2.5;fill:#fff;margin-left:calc(var(--u)*1)}
+  @keyframes playPulse{
+    0%,100%{box-shadow:0 calc(var(--u)*1.2) 0 #1a8c33, 0 calc(var(--u)*0.7) calc(var(--u)*3.5) rgba(0,0,0,.4), 0 0 calc(var(--u)*6) rgba(46,184,77,.35)}
+    50%{box-shadow:0 calc(var(--u)*1.2) 0 #1a8c33, 0 calc(var(--u)*0.7) calc(var(--u)*5) rgba(0,0,0,.5), 0 0 calc(var(--u)*10) rgba(46,184,77,.55)}
+  }
 
   /* ═══ Overlay / Modais ═══ */
   #overlay{position:absolute;inset:0;background:rgba(14,36,68,.62);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;text-align:center;z-index:6}
@@ -168,6 +185,15 @@
   </button>
   <div id="overlay"></div>
 </div></div>
+
+<div id="startOverlay">
+  <h1>TOY DROP</h1>
+  <p class="sub">junte blocos iguais!</p>
+  <button id="playBtn" aria-label="jogar">
+    <svg class="ico-svg"><use href="#ico-play"/></svg>
+  </button>
+</div>
+
 <script src="js/matter.min.js"></script>
 <script src="js/game.js"></script>
 </body>
