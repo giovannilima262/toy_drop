@@ -49,19 +49,20 @@ function loadImages(){
 
 /* ---------- Áudio ---------- */
 let AC = null, muted = localStorage.getItem('toydrop_mute')==='1';
+let musicMuted = localStorage.getItem('toydrop_musicMute')==='1';
 function audioInit(){
   if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
   if(AC && AC.state==='suspended') AC.resume();
   // Se o browser bloqueou o autoplay, tenta de novo na interação
   const bgm = $('bgm');
-  if(bgm && bgm.paused && !muted){
-    bgm.volume = 0.06;
+  if(bgm && bgm.paused && !musicMuted){
+    bgm.volume = 0.08;
     bgm.play().catch(()=>{});
   }
 }
 function startBgm(){
   const bgm = $('bgm');
-  if(!bgm || muted) return;
+  if(!bgm || musicMuted) return;
   bgm.volume = 0.08;
   bgm.loop = true;
   bgm.play().then(()=>{
@@ -69,7 +70,7 @@ function startBgm(){
   }).catch(()=>{
     // Browser bloqueou autoplay: espera primeiro toque
     const resume = ()=>{
-      if(muted) return;
+      if(musicMuted) return;
       bgm.play().catch(()=>{});
       document.removeEventListener('pointerdown', resume);
       document.removeEventListener('keydown', resume);
@@ -778,7 +779,8 @@ function pause(){
   if(state!=='play') return;
   state = 'paused';
   setPauseIcon('ico-play');
-  const soundLabel = muted ? 'Som Desligado' : 'Som Ligado';
+  const sndLabel = muted ? 'Efeitos Desl.' : 'Efeitos Lig.';
+  const musLabel = musicMuted ? 'Música Desl.' : 'Música Lig.';
   const chars = ['a','b','c','d'];
   overlay.innerHTML =
     '<div class="pause-wrap">'+
@@ -786,8 +788,9 @@ function pause(){
         '<h1>PAUSADO</h1>'+
         '<div class="btn-row">'+
           '<button class="btn play-btn" id="resumeBtn"><svg class="ico-svg"><use href="#ico-play"/></svg> Continuar</button>'+
-          '<button class="btn sound-btn" id="muteBtn"><svg class="ico-svg"><use href="#'+(muted?'ico-speaker-mute':'ico-speaker')+'"/></svg> '+soundLabel+'</button>'+
           '<button class="btn restart-btn" id="restartBtn"><svg class="ico-svg"><use href="#ico-restart"/></svg> Reiniciar</button>'+
+          '<button class="btn sound-btn" id="muteSfxBtn"><svg class="ico-svg"><use href="#'+(muted?'ico-speaker-mute':'ico-speaker')+'"/></svg> '+sndLabel+'</button>'+
+          '<button class="btn music-btn" id="muteMusicBtn"><svg class="ico-svg"><use href="#ico-music"/></svg> '+musLabel+'</button>'+
         '</div>'+
         '<div class="tips">arraste para mirar · solte para largar<br>junte blocos iguais para fundir!</div>'+
       '</div>'+
@@ -796,15 +799,20 @@ function pause(){
   overlay.classList.remove('hiding');
   overlay.style.display='flex';
   $('resumeBtn').addEventListener('click', resume);
-  $('muteBtn').addEventListener('click', ()=>{
+  $('muteSfxBtn').addEventListener('click', ()=>{
     muted=!muted; localStorage.setItem('toydrop_mute', muted?'1':'0');
-    const label = muted ? 'Som Desligado' : 'Som Ligado';
+    const label = muted ? 'Efeitos Desl.' : 'Efeitos Lig.';
     const icon = muted ? 'ico-speaker-mute' : 'ico-speaker';
-    $('muteBtn').innerHTML = '<svg class="ico-svg"><use href="#'+icon+'"/></svg> '+label;
+    $('muteSfxBtn').innerHTML = '<svg class="ico-svg"><use href="#'+icon+'"/></svg> '+label;
+  });
+  $('muteMusicBtn').addEventListener('click', ()=>{
+    musicMuted=!musicMuted; localStorage.setItem('toydrop_musicMute', musicMuted?'1':'0');
+    const label = musicMuted ? 'Música Desl.' : 'Música Lig.';
+    $('muteMusicBtn').innerHTML = '<svg class="ico-svg"><use href="#ico-music"/></svg> '+label;
     const bgm = $('bgm');
     if(bgm){
-      if(muted) bgm.pause();
-      else{ bgm.volume = 0.06; bgm.play().catch(()=>{}); }
+      if(musicMuted) bgm.pause();
+      else{ bgm.volume = 0.08; bgm.play().catch(()=>{}); }
     }
   });
   $('restartBtn').addEventListener('click', ()=>{ hideOverlay(); restart(); });

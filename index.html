@@ -150,14 +150,16 @@
   #overlay .pause-card .btn-row{display:flex;flex-direction:column;gap:calc(var(--u)*1.4);align-items:center}
   #overlay .pause-card .btn{width:100%;max-width:calc(var(--u)*36);font-size:calc(var(--u)*3);padding:calc(var(--u)*1.6) calc(var(--u)*3);display:flex;align-items:center;justify-content:center;gap:calc(var(--u)*1.2);margin:0;border-radius:calc(var(--u)*2.5);font-family:"Lilita One",sans-serif;font-weight:800;border:1px solid rgba(255,255,255,.2);color:#fff;cursor:pointer;transition:transform .1s;animation:btnSlide .45s cubic-bezier(.34,1.56,.64,1) both}
   #overlay .pause-card .btn:nth-child(1){animation-delay:.15s}
-  #overlay .pause-card .btn:nth-child(2){animation-delay:.25s}
-  #overlay .pause-card .btn:nth-child(3){animation-delay:.35s}
+  #overlay .pause-card .btn:nth-child(2){animation-delay:.23s}
+  #overlay .pause-card .btn:nth-child(3){animation-delay:.31s}
+  #overlay .pause-card .btn:nth-child(4){animation-delay:.39s}
   @keyframes btnSlide{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
   #overlay .pause-card .btn:active{transform:translateY(5%)}
   #overlay .pause-card .btn .ico-svg{width:calc(var(--u)*3);height:calc(var(--u)*3);stroke:#fff;stroke-width:2.5;fill:none}
   #overlay .pause-card .btn.play-btn{background:linear-gradient(180deg,#43d66c,#2eb84d);box-shadow:0 calc(var(--u)*0.6) 0 #1a8c33}
   #overlay .pause-card .btn.sound-btn{background:linear-gradient(180deg,#6b9ed8,#4a7ec0);box-shadow:0 calc(var(--u)*0.6) 0 #2d5a94}
   #overlay .pause-card .btn.restart-btn{background:linear-gradient(180deg,#ff8c6b,#e05540);box-shadow:0 calc(var(--u)*0.6) 0 #a03528}
+  #overlay .pause-card .btn.music-btn{background:linear-gradient(180deg,#c084e0,#8b5cb0);box-shadow:0 calc(var(--u)*0.6) 0 #5a3878}
   #overlay .pause-card .tips{font-size:calc(var(--u)*2.1);color:rgba(255,255,255,.55);margin-top:calc(var(--u)*2.5);line-height:1.4;animation:cardPop .5s .4s cubic-bezier(.34,1.56,.64,1) both}
   /* Personagens do pause */
   .pause-char{position:absolute;pointer-events:none;filter:drop-shadow(0 calc(var(--u)*0.6) calc(var(--u)*1) rgba(0,0,0,.35));animation:fadeIn .35s ease-out both}
@@ -230,6 +232,11 @@
     <polygon points="2,9 7,9 12,5 12,19 7,15 2,15"/>
     <line x1="16" y1="9" x2="22" y2="15"/>
     <line x1="22" y1="9" x2="16" y2="15"/>
+  </symbol>
+  <symbol id="ico-music" viewBox="0 0 24 24">
+    <path d="M9 18V5l12-2v13"/>
+    <circle cx="6" cy="18" r="3"/>
+    <circle cx="18" cy="16" r="3"/>
   </symbol>
   <symbol id="ico-restart" viewBox="0 0 24 24">
     <path d="M3 4v6h6"/>
