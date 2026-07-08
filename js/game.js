@@ -237,35 +237,32 @@ function fits(self, cx, ny, w, bh){
   }
   return true;
 }
-function lowestFitInColumn(cx, w, bh, self){   // encaixe mais BAIXO que caiba nesta coluna: chão primeiro, senão apoiado no topo da peça de baixo — só sobe se não houver espaço embaixo
+function restYInColumn(cx, w, bh, self, refY){   // onde a peça pousa caindo RETO a partir de refY: apoio mais alto que esteja abaixo de refY (a peça fixa logo abaixo, ou o chão) — não mergulha pra vãos sob peças nem sobe pra vãos acima
+  let top = FLOOR_Y;
   const l = cx-w/2, r = cx+w/2;
-  const surfaces = [FLOOR_Y];                  // apoios candidatos: chão + topo de cada peça que cruza a faixa
   for(const o of pieces){
     if(o===self || o.plugin.dead || !o.plugin.snapped) continue;
-    if(xOverlap(l, r, o.bounds.min.x, o.bounds.max.x) >= 8) surfaces.push(o.bounds.min.y);
+    if(o.bounds.min.y <= refY) continue;   // ignora peças cujo topo está acima da referência (a peça em queda não passa por elas)
+    if(xOverlap(l, r, o.bounds.min.x, o.bounds.max.x) >= 8) top = Math.min(top, o.bounds.min.y);
   }
-  surfaces.sort((a,b)=>b-a);                   // do mais baixo (maior y) ao mais alto
-  for(const sy of surfaces){
-    const ny = sy - bh/2;
-    if(fits(self, cx, ny, w, bh)) return ny;   // 1ª vaga (a mais baixa) que caiba; o topo da coluna sempre cabe → nunca retorna null na prática
-  }
-  return null;
+  const ny = top - bh/2;                    // descansa no topo do apoio imediatamente abaixo
+  return fits(self, cx, ny, w, bh) ? ny : null;
 }
-function nearestFit(tier, fromX, self, maxDist){   // coluna com o encaixe mais BAIXO disponível, mais próxima de fromX (dentro de maxDist)
+function nearestFit(tier, fromX, refY, self, maxDist){   // coluna mais próxima de fromX onde a peça pousa (caindo reto de refY) sem conflito
   const p = PIECES[tier], bh = p.h-STUD;
   let best = null, bestD = 1e9;
   const kMax = (INNER_W-p.w)/GRID;
   for(let k=0;k<=kMax;k++){
     const cx = INNER_L + p.w/2 + k*GRID;
     if(maxDist!=null && Math.abs(cx-fromX) > maxDist) continue;   // nada de vaga longe (evita teleporte)
-    const ny = lowestFitInColumn(cx, p.w, bh, self);
+    const ny = restYInColumn(cx, p.w, bh, self, refY);
     if(ny!=null){ const d = Math.abs(cx-fromX); if(d<bestD){ bestD=d; best={cx,ny}; } }
   }
   return best;
 }
 function forcePlace(b){   // failsafe: peça sem se posicionar há muito tempo → vaga próxima que caiba; sem vaga nos arredores, volta pro topo e cai de novo
   const p = PIECES[b.plugin.tier], bh = p.h-STUD;
-  const nf = nearestFit(b.plugin.tier, b.position.x, b, GRID*4);   // só vagas perto (evita teleporte)
+  const nf = nearestFit(b.plugin.tier, b.position.x, b.position.y, b, GRID*4);   // só vagas perto (evita teleporte)
   if(!nf){
     // ── warp de volta pro topo com juice ──
     const tier = b.plugin.tier, color = PIECES[tier].color;
@@ -318,7 +315,7 @@ function trySnap(b, tol){
   }
   // Se nenhuma vaga próxima couber → procura só nos arredores (±4 pinos)
   if(!ok){
-    const nf = nearestFit(b.plugin.tier, b.position.x, b, GRID*4);
+    const nf = nearestFit(b.plugin.tier, b.position.x, b.position.y, b, GRID*4);
     if(nf){ cx = nf.cx; ny = nf.ny; ok = true; }
   }
   // Sem vaga nos arredores: não força encaixe nem teleporta — deixa a física agir;
@@ -552,8 +549,8 @@ function doMerge(a,b){
         if(tx!==base && fits(null, tx, ny0, np.w, nbh)){ const d = Math.abs(tx-mx); if(d<bestD){ bestD=d; nx=tx; ok=true; } }
       }
     }
-    if(!ok){                                    // sem vaga imediata: vaga mais próxima nos arredores (±4 pinos), assentada no topo da coluna
-      const nf = nearestFit(nt, mx, null, GRID*4);
+    if(!ok){                                    // sem vaga imediata: vaga mais próxima nos arredores (±4 pinos), apoiada logo abaixo do ponto do merge
+      const nf = nearestFit(nt, mx, ny0, null, GRID*4);
       if(nf){ nx = nf.cx; ny = nf.ny; ok = true; }
     }
     if(!ok){                                    // nada nos arredores: nasce solta no ponto do merge; física acomoda, e se o tempo passar o failsafe manda pro topo
