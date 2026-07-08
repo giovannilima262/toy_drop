@@ -465,7 +465,7 @@ function forcePlace(b){   // failsafe: peça sem se posicionar há muito tempo �
     Body.setVelocity(b, {x:0, y:3});
     Body.setAngle(b, 0); Body.setAngularVelocity(b, 0);
     b.isSensor = false; b.plugin.guided = undefined;
-    b.plugin.aliveT = 0; b.plugin.restT = 0; b.plugin.releases = 0; b.plugin.pops = 0;
+    b.plugin.aliveT = 0; b.plugin.restT = 0; b.plugin.releases = 0;
     b.plugin.pop = performance.now();   // animação de pop-in (scale-in)
     return;
   }
@@ -476,7 +476,7 @@ function forcePlace(b){   // failsafe: peça sem se posicionar há muito tempo �
   b.positionImpulse.x = 0; b.positionImpulse.y = 0;   // Matter aplica impulso residual até em corpo estático (postSolvePosition) — zera p/ peça não deslizar depois de encaixada
   b.isSensor = false;
   b.plugin.snapped = true; b.plugin.guided = undefined;
-  b.plugin.releases = 0; b.plugin.pops = 0; b.plugin.aliveT = 0;
+  b.plugin.releases = 0; b.plugin.aliveT = 0;
   b.plugin.land = performance.now();
   rings.push({x:cx, y:ny, w:p.w, h:bh, t0:performance.now()});
   camShake = Math.max(camShake, 2);
@@ -524,7 +524,7 @@ function trySnap(b, tol){
   b.plugin.snapped = true;
   b.plugin.unsnapAt = 0;
   b.plugin.guided = undefined;
-  b.plugin.releases = 0; b.plugin.pops = 0; b.plugin.aliveT = 0;
+  b.plugin.releases = 0; b.plugin.aliveT = 0;
   if(!quiet){
     b.plugin.land = performance.now();
     rings.push({x:cx, y:ny, w:p.w, h:bh, t0:performance.now()});
@@ -631,16 +631,9 @@ function unstick(dt){
     }
     if(!pen){ b.plugin.stuckT = 0; continue; }
     b.plugin.stuckT = (b.plugin.stuckT||0)+dt;
-    if(b.plugin.stuckT > 250){
+    if(b.plugin.stuckT > 500){
       b.plugin.stuckT = 0;
-      b.plugin.pops = (b.plugin.pops||0)+1;
-      if(b.plugin.pops > 5){ unsnap(pen, 3); b.plugin.pops = 0; }
-      else {
-        b.plugin.guided = undefined;
-        const dir = Math.sign(b.position.x-pen.position.x) || (b.position.x<(INNER_L+INNER_R)/2?-1:1);
-        Body.setVelocity(b, {x:dir*(3+Math.random()*2), y:-6-Math.random()*2});
-        burst(b.position.x, b.position.y, '#FFFFFF', 8);
-      }
+      unsnapAbove(pen.bounds.min.y);   // peça solta travada numa peça encaixada: solta só os encaixes acima do ponto onde travou, em vez da pilha toda
     }
   }
 }
@@ -681,24 +674,8 @@ function unsnap(b, nudge){
   b.plugin.prevX = b.position.x; b.plugin.prevY = b.position.y;
   if(nudge) Body.setVelocity(b, {x:(Math.random()-.5)*nudge, y:-Math.random()*nudge*.6});
 }
-function supportCascade(){
-  let changed = true, any = false;
-  while(changed){
-    changed = false;
-    for(const b of pieces){
-      if(!b.plugin.snapped) continue;
-      const bot = b.bounds.max.y;
-      if(bot >= FLOOR_Y-6) continue;
-      let ok = false;
-      for(const o of pieces){
-        if(o===b || !o.plugin.snapped) continue;
-        if(o.bounds.min.y > bot-4 && o.bounds.min.y < bot+12 &&
-           xOverlap(b.bounds.min.x,b.bounds.max.x,o.bounds.min.x,o.bounds.max.x) >= 10){ ok = true; break; }
-      }
-      if(!ok){ unsnap(b, 1.2); changed = true; any = true; }
-    }
-  }
-  if(any) sUnsnap();
+function unsnapAbove(y){   // solta só os encaixes acima da linha y (a pilha por cima do ponto onde travou) — o que sustenta por baixo fica parado; cada peça re-trava sozinha ao repousar (ver loop de restT)
+  for(const b of pieces) if(b.plugin.snapped && !b.plugin.dead && b.bounds.max.y <= y+2) unsnap(b);
 }
 
 /* ---------- Fusões ---------- */
@@ -770,7 +747,6 @@ function doMerge(a,b){
     if(combo>=5){ camShake = Math.max(camShake, combo*0.7); targetTS = Math.max(.3, .9 - combo*.08); setTimeout(()=>{ targetTS = 1; }, 300); }
   }
   checkGoal();
-  supportCascade();
 }
 function processMerges(){
   while(pendingMerges.length){
