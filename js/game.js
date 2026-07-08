@@ -32,6 +32,87 @@ const PIECES = [null,
 ];
 const CONFETTI = ['#FF5859','#FFCC2F','#1695ED','#56C46D','#ECECEC','#FFB733'];
 
+
+/* ---------- Tradução EN/PT ---------- */
+let lang = localStorage.getItem('toydrop_lang') || '';
+function detectLang(){
+  if(!lang){
+    try {
+      const loc = window.CrazyGames?.SDK?.user?.getUser?.()?.locale;
+      if(loc){ lang = loc.startsWith('pt')?'pt':'en'; return; }
+    } catch(e) {}
+    lang = (navigator.language && navigator.language.startsWith('pt')) ? 'pt' : 'en';
+  }
+}
+detectLang();
+function toggleLang(){
+  lang = (lang==='pt') ? 'en' : 'pt';
+  localStorage.setItem('toydrop_lang', lang);
+  // Atualiza o toggle imediatamente
+  const p = document.getElementById('langPt');
+  const e = document.getElementById('langEn');
+  if(p) p.classList.toggle('active', lang==='pt');
+  if(e) e.classList.toggle('active', lang==='en');
+  syncHTML();
+  syncScore();
+}
+const TX = {
+  next:     { pt:"PRÓXIMAS", en:"NEXT" },
+  level:    { pt:"NÍVEL", en:"LEVEL" },
+  subtitle: { pt:"junte blocos iguais!", en:"merge matching blocks!" },
+  sRecord:  { pt:"RECORDE", en:"RECORD" },
+  sPieces:  { pt:"PEÇAS", en:"PIECES" },
+  sMaxLvl:  { pt:"NÍVEL MÁX", en:"MAX LEVEL" },
+  ctrlMouse:{ pt:"arraste para mirar<br>solte para largar", en:"drag to aim<br>release to drop" },
+  ctrlKey:  { pt:"← → mover<br>espaço soltar", en:"← → move<br>space to drop" },
+  paused:   { pt:"PAUSADO", en:"PAUSED" },
+  resume:   { pt:"Continuar", en:"Resume" },
+  restart:  { pt:"Reiniciar", en:"Restart" },
+  sfxOn:    { pt:"Efeitos Lig.", en:"SFX On" },
+  sfxOff:   { pt:"Efeitos Desl.", en:"SFX Off" },
+  musicOn:  { pt:"Música Lig.", en:"Music On" },
+  musicOff: { pt:"Música Desl.", en:"Music Off" },
+  tips:     { pt:"arraste para mirar · solte para largar<br>junte blocos iguais para fundir!", en:"drag to aim · release to drop<br>merge matching blocks!" },
+  gameOver: { pt:"FIM DE JOGO", en:"GAME OVER" },
+  newRecord:{ pt:"NOVO RECORDE!", en:"NEW RECORD!" },
+  pts:      { pt:"pts", en:"pts" },
+  continue: { pt:"Continuar", en:"Continue" },
+  playAgain:{ pt:"Jogar de Novo", en:"Play Again" },
+  congrats: { pt:"PARABÉNS!", en:"CONGRATULATIONS!" },
+  boardClear:{ pt:"Tabuleiro Limpo!", en:"Board Cleared!" },
+  bonus:    { pt:"bônus", en:"bonus" },
+  tapCont:  { pt:"toque para continuar", en:"tap to continue" },
+  adTitle:  { pt:"anúncio", en:"ad" },
+  shake:    { pt:"CHACOALHAR", en:"SHAKE" },
+  storeSoon:{ pt:"loja em breve", en:"shop coming soon" },
+};
+function T(key){ return (TX[key]&&TX[key][lang]) || TX[key]?.pt || key; }
+function syncHTML(){
+  // Start screen labels
+  const labels = document.querySelectorAll('.ss-label');
+  if(labels[0]) labels[0].textContent = T('sRecord');
+  if(labels[1]) labels[1].textContent = T('sPieces');
+  if(labels[2]) labels[2].textContent = T('sMaxLvl');
+  // Subtitle
+  const sub = document.querySelector('#startOverlay .sub');
+  if(sub) sub.textContent = T('subtitle');
+  // Controls
+  const ctrlSpans = document.querySelectorAll('.ctrl-group span');
+  if(ctrlSpans[0]) ctrlSpans[0].innerHTML = T('ctrlMouse');
+  if(ctrlSpans[1]) ctrlSpans[1].innerHTML = T('ctrlKey');
+  // Level pill
+  const lvl = document.querySelector('#lvlPill');
+  if(lvl) lvl.childNodes[0].textContent = T('level')+' ';
+  // Shake button
+  const shakeLabel = document.getElementById('shakeLabel');
+  if(shakeLabel) shakeLabel.textContent = T('shake');
+  // Lang toggle
+  const langPt = document.getElementById('langPt');
+  const langEn = document.getElementById('langEn');
+  if(langPt) langPt.classList.toggle('active', lang==='pt');
+  if(langEn) langEn.classList.toggle('active', lang==='en');
+}
+
 /* ---------- Integração CrazyGames ---------- */
 const CG = ()=> window.CrazyGames?.SDK;
 const SDK = {
@@ -901,16 +982,16 @@ function doGameOver(){
   overlay.innerHTML =
     '<div class="pause-wrap">'+
       '<div class="pause-card">'+
-        '<h1>'+(rec?'NOVO RECORDE!':'FIM DE JOGO')+'</h1>'+
-        (rec?'<div class="go-record">🏆 '+best.toLocaleString('pt-BR')+' pts</div>':'')+
+        '<h1>'+(rec?T('newRecord'):T('gameOver'))+'</h1>'+
+        (rec?'<div class="go-record">🏆 '+best.toLocaleString('pt-BR')+' '+T('pts')+'</div>':'')+
         '<div class="go-score">'+score.toLocaleString('pt-BR')+'</div>'+
         '<div class="go-stats">'+
           '<span class="go-stat"><svg class="ico-svg filled"><use href="#ico-star"/></svg> '+best.toLocaleString('pt-BR')+'</span>'+
           '<span class="go-stat"><img src="assets/char_a.png" class="go-char" alt=""> '+charsCollected.toLocaleString('pt-BR')+'</span>'+
         '</div>'+
         '<div class="btn-row">'+
-          (canContinue?'<button class="btn continue-btn" id="continueBtn"><img src="assets/char_a.png" class="btn-char" alt=""> Continuar -5</button>':'')+
-          '<button class="btn play-btn" id="againBtn"><svg class="ico-svg"><use href="#ico-restart"/></svg> Jogar de Novo</button>'+
+          (canContinue?'<button class="btn continue-btn" id="continueBtn"><img src="assets/char_a.png" class="btn-char" alt=""> '+T('continue')+' -5</button>':'')+
+          '<button class="btn play-btn" id="againBtn"><svg class="ico-svg"><use href="#ico-restart"/></svg> '+T('playAgain')+'</button>'+
         '</div>'+
       '</div>'+
       chars.map((c,i)=>'<span class="pause-char pc'+(i+1)+'"><img src="assets/char_'+c+'.png" alt=""></span>').join('')+
@@ -924,20 +1005,20 @@ function pause(){
   if(state!=='play' || goalDone) return;  // não pausa durante celebração de vitória
   state = 'paused';
   setPauseIcon('ico-play');
-  const sndLabel = muted ? 'Efeitos Desl.' : 'Efeitos Lig.';
-  const musLabel = musicMuted ? 'Música Desl.' : 'Música Lig.';
+  const sndLabel = muted ? T('sfxOff') : T('sfxOn');
+  const musLabel = musicMuted ? T('musicOff') : T('musicOn');
   const chars = ['a','b','c','d'];
   overlay.innerHTML =
     '<div class="pause-wrap">'+
       '<div class="pause-card">'+
-        '<h1>PAUSADO</h1>'+
+        '<h1>'+T('paused')+'</h1>'+
         '<div class="btn-row">'+
-          '<button class="btn play-btn" id="resumeBtn"><svg class="ico-svg"><use href="#ico-play"/></svg> Continuar</button>'+
-          '<button class="btn restart-btn" id="restartBtn"><svg class="ico-svg"><use href="#ico-restart"/></svg> Reiniciar</button>'+
+          '<button class="btn play-btn" id="resumeBtn"><svg class="ico-svg"><use href="#ico-play"/></svg> '+T('resume')+'</button>'+
+          '<button class="btn restart-btn" id="restartBtn"><svg class="ico-svg"><use href="#ico-restart"/></svg> '+T('restart')+'</button>'+
           '<button class="btn sound-btn" id="muteSfxBtn"><svg class="ico-svg"><use href="#'+(muted?'ico-speaker-mute':'ico-speaker')+'"/></svg> '+sndLabel+'</button>'+
           '<button class="btn music-btn" id="muteMusicBtn"><svg class="ico-svg"><use href="#ico-music"/></svg> '+musLabel+'</button>'+
         '</div>'+
-        '<div class="tips">arraste para mirar · solte para largar<br>junte blocos iguais para fundir!</div>'+
+        '<div class="tips">'+T('tips')+'</div>'+
       '</div>'+
       chars.map((c,i)=>'<span class="pause-char pc'+(i+1)+'"><img src="assets/char_'+c+'.png" alt=""></span>').join('')+
     '</div>';
@@ -946,13 +1027,13 @@ function pause(){
   $('resumeBtn').addEventListener('click', resume);
   $('muteSfxBtn').addEventListener('click', ()=>{
     muted=!muted; localStorage.setItem('toydrop_mute', muted?'1':'0');
-    const label = muted ? 'Efeitos Desl.' : 'Efeitos Lig.';
+    const label = muted ? T('sfxOff') : T('sfxOn');
     const icon = muted ? 'ico-speaker-mute' : 'ico-speaker';
     $('muteSfxBtn').innerHTML = '<svg class="ico-svg"><use href="#'+icon+'"/></svg> '+label;
   });
   $('muteMusicBtn').addEventListener('click', ()=>{
     musicMuted=!musicMuted; localStorage.setItem('toydrop_musicMute', musicMuted?'1':'0');
-    const label = musicMuted ? 'Música Desl.' : 'Música Lig.';
+    const label = musicMuted ? T('musicOff') : T('musicOn');
     $('muteMusicBtn').innerHTML = '<svg class="ico-svg"><use href="#ico-music"/></svg> '+label;
     if(musicMuted) stopBgm();
     else startBgm();
@@ -967,11 +1048,11 @@ function showWinOverlay(){
   overlay.innerHTML =
     '<div class="win-wrap">'+
       '<div class="win-card">'+
-        '<h1>PARABÉNS!</h1>'+
-        '<div class="wsub">Tabuleiro Limpo!</div>'+
+        '<h1>'+T('congrats')+'</h1>'+
+        '<div class="wsub">'+T('boardClear')+'</div>'+
         '<div class="wscore">'+score.toLocaleString('pt-BR')+'</div>'+
-        '<div class="wbonus">+'+_lastGoalBonus.toLocaleString('pt-BR')+' bônus</div>'+
-        '<div class="whint">toque para continuar</div>'+
+        '<div class="wbonus">+'+_lastGoalBonus.toLocaleString('pt-BR')+' '+T('bonus')+'</div>'+
+        '<div class="whint">'+T('tapCont')+'</div>'+
       '</div>'+
       chars.map((c,i)=>'<span class="win-char wc'+(i+1)+'"><img src="assets/char_'+c+'.png" alt=""></span>').join('')+
     '</div>';
@@ -1212,9 +1293,9 @@ ctx.clip();
   if(drops===0 && state==='play'){
     ctx.font = '800 20px -apple-system, sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,.95)';
-    ctx.fillText('arraste e solte', W/2, 300+Math.sin(now/300)*4);
+    ctx.fillText(lang==='en'?'drag and drop':'arraste e solte', W/2, 300+Math.sin(now/300)*4);
     ctx.font = '600 15px -apple-system, sans-serif';
-    ctx.fillText('junte blocos iguais!', W/2, 326+Math.sin(now/300)*4);
+    ctx.fillText(T('subtitle'), W/2, 326+Math.sin(now/300)*4);
   }
 
   // Próximas peças da fila — pílula no topo do painel
@@ -1227,7 +1308,7 @@ ctx.clip();
     ctx.textAlign = 'center';
     ctx.font = '400 12px "Lilita One", sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,.85)';
-    ctx.fillText('PRÓXIMAS', W/2, 38);
+    ctx.fillText(T('next'), W/2, 38);
     [queue[0], queue[1]].forEach((t,i)=>{
       if(!t) return;
       const p = PIECES[t];
@@ -1634,6 +1715,7 @@ loadImages().then(()=>{
   fit();
   queue = []; refillQueue(); newCurrent(); heldDrawX = heldX;
   syncScore();
+  syncHTML();  // traduz labels estáticos (start screen, controls, etc)
   // Popula stats na tela inicial
   if($('startBest')) $('startBest').textContent = best.toLocaleString('pt-BR');
   if($('startChars')) $('startChars').textContent = charsCollected.toLocaleString('pt-BR');
@@ -1648,6 +1730,10 @@ loadImages().then(()=>{
   loadBgm().then(()=>{ startBgm(); });
   const startOverlay = document.getElementById('startOverlay');
   const playBtn = document.getElementById('playBtn');
+  const langPt = document.getElementById('langPt');
+  const langEn = document.getElementById('langEn');
+  if(langPt) langPt.addEventListener('click', ()=>{ if(lang!=='pt') toggleLang(); });
+  if(langEn) langEn.addEventListener('click', ()=>{ if(lang!=='en') toggleLang(); });
   playBtn.addEventListener('click', ()=>{
     audioInit();
     state = 'play';

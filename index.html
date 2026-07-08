@@ -103,6 +103,11 @@
 
   /* ═══ Tela inicial ═══ */
   #startOverlay{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(ellipse at center, transparent 30%, rgba(6,18,36,.25) 60%, rgba(6,18,36,.55) 100%);backdrop-filter:blur(0.5px);-webkit-backdrop-filter:blur(0.5px);transition:opacity .5s,backdrop-filter .5s;animation:overlayIn .5s ease-out}
+	  #langToggle{position:absolute;top:calc(var(--u)*2.5);right:calc(var(--u)*2.5);display:flex;border-radius:calc(var(--u)*1.2);overflow:hidden;background:rgba(255,255,255,.12);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.2);z-index:11}
+#langToggle b{display:flex;align-items:center;justify-content:center;width:calc(var(--u)*6);height:calc(var(--u)*5);font-size:calc(var(--u)*1.9);font-weight:800;font-family:"Lilita One",sans-serif;color:rgba(255,255,255,.4);cursor:pointer;transition:background .2s,color .2s}
+#langToggle b.active{background:rgba(255,255,255,.22);color:#fff}
+#langToggle b:hover:not(.active){color:rgba(255,255,255,.7)}
+	  
   #startOverlay.hiding{opacity:0;pointer-events:none;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0)}
   #startOverlay h1{font:800 calc(var(--u)*11) "Lilita One",sans-serif;color:#FFD54A;text-shadow:0 calc(var(--u)*0.8) 0 rgba(160,100,15,.5), 0 calc(var(--u)*0.4) calc(var(--u)*2.5) rgba(0,0,0,.4), 0 0 calc(var(--u)*5) rgba(255,200,50,.25);margin:0 0 calc(var(--u)*1.5);letter-spacing:.06em;animation:titleIn .6s .15s cubic-bezier(.34,1.56,.64,1) both, titleFloat 3s .8s ease-in-out infinite}
   @keyframes titleIn{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
@@ -336,13 +341,14 @@
   <button id="shakeBtn">
     <span class="shake-inner">
       <svg class="ico-svg"><use href="#ico-shake"/></svg>
-      CHACOALHAR
+      <b id="shakeLabel">CHACOALHAR</b>
     </span>
   </button>
   <div id="overlay"></div>
 </div></div>
 
 <div id="startOverlay">
+    <span id="langToggle" class="lang-toggle"><b id="langPt">PT</b><b id="langEn">EN</b></span>
     <div id="startStats" class="start-stats">
       <div class="start-stats-inner">
         <span class="start-stat"><span class="ss-label">RECORDE</span><span class="ss-row"><svg class="ico-svg filled"><use href="#ico-star"/></svg><b id="startBest">0</b></span></span>
