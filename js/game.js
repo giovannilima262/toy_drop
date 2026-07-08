@@ -986,8 +986,8 @@ function showWinOverlay(){
 function restart(){
   for(const b of [...pieces]) removeBody(b);
   particles=[]; popups=[]; chars=[]; rings=[]; fxConf=[]; pendingMerges=[];
-  score=0; _prevScore=0; combo=0; drops=0; dangerT=0; continueUsed=false; level=7; usedShake=false; camShake=0; targetTS=1; timeScale=1; gameClock=0; goalCelebUntil=0;
-  if($('lvlNum')) $('lvlNum').textContent = '7';
+  score=0; _prevScore=0; combo=0; drops=0; dangerT=0; continueUsed=false; level=1; usedShake=false; camShake=0; targetTS=1; timeScale=1; gameClock=0; goalCelebUntil=0;
+  if($('lvlNum')) $('lvlNum').textContent = '1';
   if(winDismissTimer){ clearTimeout(winDismissTimer); winDismissTimer = null; }
   stash=null; holdUsed=false;
   discovered = [true,true,false,false,false,false,false,false];
