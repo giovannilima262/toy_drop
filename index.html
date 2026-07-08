@@ -119,6 +119,12 @@
 	  #startOverlay .start-stat b{font-size:calc(var(--u)*3.2);font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.15)}
 	  #startOverlay .start-stat .ico-svg{width:calc(var(--u)*3);height:calc(var(--u)*3);fill:white}
 	  #startOverlay .start-char{width:calc(var(--u)*3);height:calc(var(--u)*3);object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
+	  /* Controles — rodapé, visível só em landscape */
+	  #startOverlay .ctrls{display:none;position:absolute;bottom:calc(var(--u)*4);left:50%;transform:translateX(-50%);gap:calc(var(--u)*5);align-items:flex-start}
+	  body.landscape #startOverlay .ctrls{display:flex}
+	  #startOverlay .ctrl-group{display:flex;align-items:flex-start;gap:calc(var(--u)*1.2);color:rgba(255,255,255,.45);font-size:calc(var(--u)*4);font-family:"Lilita One",sans-serif}
+	  #startOverlay .ctrl-group span{font-size:calc(var(--u)*2);color:rgba(255,255,255,.35);line-height:1.4;padding-top:calc(var(--u)*0.4)}
+	  #startOverlay .ctrls, #startOverlay .ctrl-group{animation:subIn .5s .5s cubic-bezier(.34,1.56,.64,1) both}
   @keyframes subIn{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
   @keyframes btnIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
   /* Personagens espalhados em volta do título */
@@ -353,6 +359,10 @@
     <h1>TOY DROP</h1>
     <p class="sub">junte blocos iguais!</p>
 </div>
+    <div class="ctrls">
+      <span class="ctrl-group">🖱 <span>arraste para mirar<br>solte para largar</span></span>
+      <span class="ctrl-group">⌨ <span>← → mover<br>espaço soltar</span></span>
+    </div>
 	  <button id="playBtn" aria-label="jogar">
 	    <svg class="ico-svg"><use href="#ico-play"/></svg>
 	  </button>
