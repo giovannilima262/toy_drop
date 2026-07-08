@@ -170,6 +170,7 @@ let heldX = W/2, heldDrawX = W/2, heldSince = 0, nextAt = 0, drops = 0;
 let score = 0, best = +(localStorage.getItem('toydrop_best')||0);
 let gems = +(localStorage.getItem('toydrop_gems')||0);
 let charsCollected = +(localStorage.getItem('toydrop_chars')||0);   // peças especiais acumuladas (tier-7 merges)
+let bestLevel = +(localStorage.getItem('toydrop_bestLevel')||1);    // maior nível alcançado
 let continueUsed = false;   // já usou o continue nesta partida?
 let level = 1;              // nível atual (incrementa a cada tabuleiro limpo)
 let combo = 0, lastMergeAt = -9e9;
@@ -684,6 +685,7 @@ function nextBoard(){   // novo castelo de peças marcadas — score e gemas fic
   for(const b of [...pieces]) removeBody(b);
   pendingMerges = [];
   level++;
+  if(level > bestLevel){ bestLevel = level; localStorage.setItem('toydrop_bestLevel', bestLevel); }
   if($('lvlNum')) $('lvlNum').textContent = level;
   setupInitialBoard();
   animateInitialBoard();
@@ -1622,6 +1624,7 @@ loadImages().then(()=>{
   // Popula stats na tela inicial
   if($('startBest')) $('startBest').textContent = best.toLocaleString('pt-BR');
   if($('startChars')) $('startChars').textContent = charsCollected.toLocaleString('pt-BR');
+  if($('startBestLvl')) $('startBestLvl').textContent = bestLevel;
   setupInitialBoard();
   resetGoal();
   animateInitialBoard();

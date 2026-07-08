@@ -111,11 +111,14 @@
     55%{transform:translateY(calc(var(--u)*-1.2))}
   }
   #startOverlay .sub{font:400 calc(var(--u)*2.8) "Lilita One",sans-serif;color:rgba(255,255,255,.7);text-shadow:0 calc(var(--u)*0.2) calc(var(--u)*0.6) rgba(0,0,0,.3);margin:0 0 calc(var(--u)*6);letter-spacing:.06em;animation:subIn .5s .3s cubic-bezier(.34,1.56,.64,1) both}
-	  #startOverlay .start-stats{position:absolute;top:calc(var(--u)*4);left:50%;transform:translateX(-50%);display:flex;gap:calc(var(--u)*2.5);animation:subIn .5s .4s cubic-bezier(.34,1.56,.64,1) both}
-	  #startOverlay .start-stat{display:flex;align-items:center;gap:calc(var(--u)*1.2);background:rgba(255,255,255,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1.5px solid rgba(255,255,255,.28);border-radius:999px;padding:calc(var(--u)*0.8) calc(var(--u)*2.2);box-shadow:0 calc(var(--u)*0.5) calc(var(--u)*1.2) rgba(8,30,70,.25),inset 0 1px 0 rgba(255,255,255,.15);color:#fff;font-size:calc(var(--u)*3.4)}
-	  #startOverlay .start-stat b{font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.15)}
-	  #startOverlay .start-stat .ico-svg{width:calc(var(--u)*3.6);height:calc(var(--u)*3.6);fill:white}
-	  #startOverlay .start-char{width:calc(var(--u)*3.6);height:calc(var(--u)*3.6);object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
+	  #startOverlay .start-stats{position:absolute;top:calc(var(--u)*4);left:50%;transform:translateX(-50%)}
+	  #startOverlay .start-stats-inner{display:flex;gap:calc(var(--u)*2.5);animation:subIn .5s .4s cubic-bezier(.34,1.56,.64,1) both}
+	  #startOverlay .start-stat{display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*0.3);background:rgba(255,255,255,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1.5px solid rgba(255,255,255,.28);border-radius:calc(var(--u)*2.5);padding:calc(var(--u)*0.6) calc(var(--u)*1.8);box-shadow:0 calc(var(--u)*0.5) calc(var(--u)*1.2) rgba(8,30,70,.25),inset 0 1px 0 rgba(255,255,255,.15);color:#fff}
+	  #startOverlay .start-stat .ss-row{display:flex;align-items:center;gap:calc(var(--u)*0.8)}
+	  #startOverlay .start-stat .ss-label{font-size:calc(var(--u)*1.7);color:rgba(255,255,255,.5);letter-spacing:.08em;text-transform:uppercase;font-family:"Lilita One",sans-serif}
+	  #startOverlay .start-stat b{font-size:calc(var(--u)*3.2);font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.15)}
+	  #startOverlay .start-stat .ico-svg{width:calc(var(--u)*3);height:calc(var(--u)*3);fill:white}
+	  #startOverlay .start-char{width:calc(var(--u)*3);height:calc(var(--u)*3);object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
   @keyframes subIn{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
   @keyframes btnIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
   /* Personagens espalhados em volta do título */
@@ -335,8 +338,11 @@
 
 <div id="startOverlay">
     <div id="startStats" class="start-stats">
-      <span class="start-stat"><svg class="ico-svg filled"><use href="#ico-star"/></svg> <b id="startBest">0</b></span>
-      <span class="start-stat"><img src="assets/char_a.png" class="start-char" alt=""> <b id="startChars">0</b></span>
+      <div class="start-stats-inner">
+        <span class="start-stat"><span class="ss-label">RECORDE</span><span class="ss-row"><svg class="ico-svg filled"><use href="#ico-star"/></svg><b id="startBest">0</b></span></span>
+        <span class="start-stat"><span class="ss-label">PEÇAS</span><span class="ss-row"><img src="assets/char_a.png" class="start-char" alt=""><b id="startChars">0</b></span></span>
+        <span class="start-stat"><span class="ss-label">NÍVEL MÁX</span><span class="ss-row"><b id="startBestLvl">1</b></span></span>
+      </div>
     </div>
   <div id="titleArea">
     <span class="char-wrap c1"><img src="assets/char_a.png" alt=""></span>
