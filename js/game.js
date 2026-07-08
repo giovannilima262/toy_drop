@@ -1277,7 +1277,7 @@ function frame(now){
       if(b.plugin.snapped) continue;
       if(b.plugin.guided===undefined){   // failsafe: não assentou em 3,5s → vaga próxima que caiba, senão manda pro topo
         b.plugin.aliveT = (b.plugin.aliveT||0)+dt;
-        if(b.plugin.aliveT > 3500){ forcePlace(b); continue; }
+        if(b.plugin.aliveT > 2500){ forcePlace(b); continue; }
       }
       const sp = Math.hypot(b.velocity.x, b.velocity.y);
       if(sp<.4 && Math.abs(b.angularVelocity)<.06) b.plugin.restT += dt; else b.plugin.restT = 0;
