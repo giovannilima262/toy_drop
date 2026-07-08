@@ -40,13 +40,16 @@ const ST = {
   _queue: [],
   async _init(){
     try {
-      if(window.CrazyGames?.SDK?.data?.get){
-        // Carrega dados salvos na nuvem CrazyGames
+      const sdkData = window.CrazyGames?.SDK?.data;
+      if(sdkData?.get){
         const keys = ['best','chars','gems','bestLevel','lang','mute','musicMute'];
-        const vals = await window.CrazyGames.SDK.data.get(keys);
-        for(const k of keys){
-          if(vals[k] !== undefined && vals[k] !== null){
-            localStorage.setItem(this._prefix+k, vals[k]);
+        // SDK.data.get(keys[]) → {key: value, ...}
+        const cloud = await sdkData.get(keys);
+        if(cloud){
+          for(const k of keys){
+            if(cloud[k] !== undefined && cloud[k] !== null){
+              localStorage.setItem(this._prefix+k, String(cloud[k]));
+            }
           }
         }
       }
@@ -54,6 +57,7 @@ const ST = {
     this._loading = false;
     for(const fn of this._queue) fn();
     this._queue = [];
+    if(typeof reloadStats === 'function') reloadStats();
   },
   get(key){
     const raw = localStorage.getItem(this._prefix+key);
@@ -61,17 +65,15 @@ const ST = {
     return raw;
   },
   set(key, val){
-    localStorage.setItem(this._prefix+key, String(val));
-    this._sync(key, val);
+    const s = String(val);
+    localStorage.setItem(this._prefix+key, s);
+    this._sync(key, s);
   },
   _sync(key, val){
     if(this._loading){ this._queue.push(()=>this._sync(key,val)); return; }
-    try {
-      window.CrazyGames?.SDK?.data?.set({ [key]: val });
-    } catch(e) {}
+    try { window.CrazyGames?.SDK?.data?.set({ [key]: val }); } catch(e) {}
   }
 };
-ST._init();
 
 /* ---------- Tradução EN/PT ---------- */
 let lang = ST.get('lang') || '';
@@ -159,11 +161,7 @@ const SDK = {
   init(){
     try {
       CG()?.init();
-      // Hooks de áudio/foco — pausa/retoma quando ads tocam ou perde foco
-      CG()?.game?.onPause?.(()=>{ if(state==='play' && !goalDone) pause(); });
-      CG()?.game?.onResume?.(()=>{ if(state==='paused') resume(); });
-      // Evento separado para quando um ad começa — garante áudio pausado
-      CG()?.onAdStarted?.(()=>{ if(state==='play' && !goalDone) pause(); });
+      ST._init();  // carrega progresso salvo na nuvem CrazyGames
     } catch(e) {}
   },
   gameplayStart(){
@@ -204,6 +202,7 @@ function loadImages(){
 /* ---------- Áudio ---------- */
 let AC = null, muted = ST.get('mute')==='1';
 let musicMuted = ST.get('musicMute')==='1';
+let sdkMuted = false;  // controle de áudio da CrazyGames SDK (mute sem pausar jogo)
 
 /* ---------- BGM (Web Audio API — crossfade loop sem corte) ---------- */
 let bgmBuffer = null, _bgmLoading = null, _bgmNodes = [], _bgmTimer = null;
@@ -251,7 +250,7 @@ function _scheduleBgmIteration(when){
   _bgmTimer = setTimeout(() => { _bgmTimer = null; _scheduleBgmIteration(nextWhen); }, scheduleIn);
 }
 function startBgm(){
-  if(!AC || !bgmBuffer || musicMuted) return;
+  if(!AC || !bgmBuffer || musicMuted || sdkMuted) return;
   stopBgm();
   if(AC.state==='suspended') AC.resume();
   _scheduleBgmIteration(AC.currentTime + 0.15);
@@ -272,7 +271,7 @@ function audioInit(){
   else if(!musicMuted && !_bgmNodes.length) startBgm();
 }
 function tone(f,d,type,g,slide,delay){
-  if(muted || !AC) return;
+  if(muted || sdkMuted || !AC) return;
   const o=AC.createOscillator(), v=AC.createGain(), t=AC.currentTime+(delay||0);
   o.type=type||'sine'; o.frequency.setValueAtTime(f,t);
   if(slide) o.frequency.exponentialRampToValueAtTime(f*slide, t+d);
@@ -294,7 +293,7 @@ const sParty  = ()=>[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.18,
 /* samples (Kenney interface sounds) */
 const aDrop = new Audio('assets/sfx_drop.ogg');   aDrop.preload='auto'; aDrop.volume=.2;
 const aBtn  = new Audio('assets/sfx_button.ogg');  aBtn.preload='auto'; aBtn.volume=.45;
-function sfx(el){ if(muted) return; try{ const n=el.cloneNode(); n.volume=el.volume; n.play(); }catch(e){} }
+function sfx(el){ if(muted || sdkMuted || (AC && AC.state==='suspended')) return; try{ const n=el.cloneNode(); n.volume=el.volume; n.play(); }catch(e){} }
 
 /* ---------- Matter ---------- */
 const { Engine, Bodies, Body, Composite, Events } = Matter;
@@ -319,6 +318,18 @@ let score = 0, best = +(ST.get('best')||0);
 let gems = +(ST.get('gems')||0);
 let charsCollected = +(ST.get('chars')||0);   // peças especiais acumuladas (tier-7 merges)
 let bestLevel = +(ST.get('bestLevel')||1);    // maior nível alcançado
+
+/* Recarrega stats do storage (chamado após sync da nuvem) */
+function reloadStats(){
+  best = +(ST.get('best')||0);
+  gems = +(ST.get('gems')||0);
+  charsCollected = +(ST.get('chars')||0);
+  bestLevel = +(ST.get('bestLevel')||1);
+  syncScore();
+  if($('startBest')) $('startBest').textContent = best.toLocaleString('pt-BR');
+  if($('startChars')) $('startChars').textContent = charsCollected.toLocaleString('pt-BR');
+  if($('startBestLvl')) $('startBestLvl').textContent = bestLevel;
+}
 let continueUsed = false;   // já usou o continue nesta partida?
 let level = 1;              // nível atual (incrementa a cada tabuleiro limpo)
 let combo = 0, lastMergeAt = -9e9;
@@ -1773,7 +1784,15 @@ loadImages().then(()=>{
   // Loop já roda na tela inicial — peças animam no menu
   requestAnimationFrame(loop);
   // Inicia AudioContext e carrega BGM; toca assim que o buffer estiver pronto
-  try { AC = new (window.AudioContext||window.webkitAudioContext)(); } catch(e) {}
+  try {
+    AC = new (window.AudioContext||window.webkitAudioContext)();
+    let _acWasRunning = false;
+    // CrazyGames: quando a plataforma muta, o AudioContext é suspenso
+    AC.addEventListener('statechange', ()=>{
+      if(AC.state === 'suspended' && _acWasRunning){ sdkMuted = true; stopBgm(); }
+      else if(AC.state === 'running'){ _acWasRunning = true; sdkMuted = false; startBgm(); }
+    });
+  } catch(e) {}
   loadBgm().then(()=>{ startBgm(); });
   const startOverlay = document.getElementById('startOverlay');
   const playBtn = document.getElementById('playBtn');
