@@ -12,8 +12,14 @@ const STUD = 8;               // altura real do pino nos sprites
 const GRID = 32;              // passo real do pino (t1 = 1 pino de 32px)
 const MERGE_WINDOW = 1400;
 const NEXT_DELAY = 500;
-const SPAWN_POOL = [1,1,1,1,2,2,2,3,3];
 const MAX_TIER = 7, CELEBRATE_PTS = 400;
+
+function getSpawnPool(){
+  if(level <= 5)  return [1,1,1,1,2,2,2,3,3];            // fácil: tier 1-3
+  if(level <= 10) return [1,1,2,2,2,3,3,3,4];             // médio: tier 1-4
+  if(level <= 15) return [1,2,2,3,3,3,4,4,5];             // difícil: tier 1-5
+  return [2,3,3,4,4,5,5,6];                                // extremo: tier 2-6 (pretas!)
+}
 
 const PIECES = [null,
   { img:'t1', w:32,  h:22, color:'#FF5859', pts:0  },
@@ -179,7 +185,7 @@ let camShake = 0, timeScale = 1, targetTS = 1;
 let gameClock = 0;   // tempo de simulação (soma dt por frame jogado): base do envelhecimento de perigo
 let winDismissTimer = null;   // timer do modal de vitória
 
-const randTier = ()=> SPAWN_POOL[(Math.random()*SPAWN_POOL.length)|0];
+function randTier(){ const p = getSpawnPool(); return p[(Math.random()*p.length)|0]; }
 const eob = q => 1 + 2.70158*Math.pow(q-1,3) + 1.70158*Math.pow(q-1,2);
 
 function gridX(tier, x){
@@ -980,8 +986,8 @@ function showWinOverlay(){
 function restart(){
   for(const b of [...pieces]) removeBody(b);
   particles=[]; popups=[]; chars=[]; rings=[]; fxConf=[]; pendingMerges=[];
-  score=0; _prevScore=0; combo=0; drops=0; dangerT=0; continueUsed=false; level=1; usedShake=false; camShake=0; targetTS=1; timeScale=1; gameClock=0; goalCelebUntil=0;
-  if($('lvlNum')) $('lvlNum').textContent = '1';
+  score=0; _prevScore=0; combo=0; drops=0; dangerT=0; continueUsed=false; level=7; usedShake=false; camShake=0; targetTS=1; timeScale=1; gameClock=0; goalCelebUntil=0;
+  if($('lvlNum')) $('lvlNum').textContent = '7';
   if(winDismissTimer){ clearTimeout(winDismissTimer); winDismissTimer = null; }
   stash=null; holdUsed=false;
   discovered = [true,true,false,false,false,false,false,false];
@@ -1537,25 +1543,40 @@ function setupInitialBoard(){
     return b;
   }
 
-  // ═══ CASTELO ALEATÓRIO — varia a cada reload ═══
-  const COLS = [0, 2, 4, 6, 8, 10];       // colunas pares (peças 64px não colidem)
+  // ═══ CASTELO ALEATÓRIO — dificuldade escala com o nível ═══
+  let cols, minH, maxH, bases, mids, tops;
+  if(level <= 5){
+    cols = [0, 2, 4, 6, 8, 10];              // 6 colunas
+    minH = 4; maxH = 9;
+    bases = [5,5,4,4,4,3];
+    mids  = [2,2,3,3,3,4,4,5,5];
+    tops  = [1,1,2,2,2,3,3];
+  } else if(level <= 10){
+    cols = [0, 2, 3, 5, 6, 8, 9, 11, 12];   // 9 colunas densas
+    minH = 7; maxH = 12;
+    bases = [5,5,5,4,4,4,3,3];
+    mids  = [3,3,4,4,4,5,5,5,5];             // tiers mais altos no meio
+    tops  = [2,2,3,3,4,4,5];                 // tier 5 já no topo
+  } else if(level <= 15){
+    cols = [0,1,3,4,6,7,9,10,12,13,14];     // 11 colunas
+    minH = 9; maxH = 14;
+    bases = [5,5,5,4,4,4,3,3,6];            // tier 6 na base
+    mids  = [3,3,4,4,5,5,5,5,6,6];          // tier 6 no meio
+    tops  = [2,3,3,4,4,5,5,6];              // tier 6 no topo
+  } else {
+    cols = [0,1,2,3,5,6,7,8,10,11,12,13];  // 12 colunas contíguas
+    minH = 10; maxH = 17;
+    bases = [5,5,4,4,4,3,3,6,6];           // muitas pretas na base
+    mids  = [4,4,5,5,5,6,6,6];              // domínio de tiers altos
+    tops  = [3,3,4,4,5,5,6,6];              // topo pesado
+  }
 
-  for(const k of COLS){
-    // Sorteia altura: 3 a 8 peças por coluna
-    const n = 3 + (Math.random() * 6 | 0);
-
-    // Base: prefere t5 (branca 4p) ou t4 (verde 2p), às vezes t3 (azul)
-    const bases = [5, 5, 4, 4, 4, 3, 3];
+  for(const k of cols){
+    const n = minH + (Math.random() * (maxH - minH + 1) | 0);
     if(!place(bases[Math.random() * bases.length | 0], k)) continue;
-
-    // Meio: mistura de t2(amarelo), t3(azul), t4(verde), t5(branca)
-    const mids = [2, 2, 3, 3, 3, 4, 4, 4, 5, 5];
     for(let i = 1; i < n - 2; i++){
       if(!place(mids[Math.random() * mids.length | 0], k)) break;
     }
-
-    // Topo: peças de 1 pino e azul — espira colorida
-    const tops = [1, 1, 1, 2, 2, 2, 3, 3];
     for(let i = 0; i < 3; i++){
       if(!place(tops[Math.random() * tops.length | 0], k)) break;
     }
