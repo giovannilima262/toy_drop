@@ -306,9 +306,11 @@ function trySnap(b, tol){
   tol = tol || 26;
   const p = PIECES[b.plugin.tier], bh = p.h-STUD;
   let cx = 0, ny = 0, ok = false, bestD = 1e9;
+  const anchorTop = supportTop(b, b.position.x, p.w);   // topo do apoio diretamente sob a peça solta = "ponto zero" (a peça conectada abaixo dela, ou o chão)
   for(const off of [0,-1,1,-2,2]){                 // vaga mais próxima de b.x (sem viés p/ direita)
     const tx = gridX(b.plugin.tier, b.position.x + off*GRID);
     const top = supportTop(b, tx, p.w);
+    if(top > anchorTop + 2) continue;              // nunca descansar MAIS BAIXO que a peça de baixo — encaixa SOBRE ela, não escorrega pra coluna vizinha/chão
     const ty = top - bh/2;
     if(Math.abs(ty-b.position.y) > tol || Math.abs(tx-b.position.x) > p.w/2+GRID*0.8) continue;
     if(fits(b, tx, ty, p.w, bh)){ const d = Math.abs(tx-b.position.x); if(d<bestD){ bestD=d; cx=tx; ny=ty; ok=true; } }
