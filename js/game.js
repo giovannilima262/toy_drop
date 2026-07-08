@@ -216,11 +216,13 @@ function removeBody(b){
 }
 
 /* ---------- Encaixe LEGO ---------- */
-function supportTop(self, cx, w){
+function supportTop(self, cx, w){   // superfície de apoio ABAIXO da peça em queda — nunca "sobe" pro topo passando por peças de cima
   let top = FLOOR_Y;
   const l = cx-w/2, r = cx+w/2;
+  const refY = self ? self.position.y : -Infinity;
   for(const o of pieces){
     if(o===self || !o.plugin.snapped) continue;
+    if(o.bounds.min.y <= refY) continue;   // ignora peças cujo topo está acima do centro da que cai (só apoia no que está embaixo)
     if(xOverlap(l,r,o.bounds.min.x,o.bounds.max.x) >= 8)
       top = Math.min(top, o.bounds.min.y);
   }
@@ -235,23 +237,29 @@ function fits(self, cx, ny, w, bh){
   }
   return true;
 }
-function columnTop(cx, w, self){   // altura do topo da pilha na coluna (independe de self.y)
-  let top = FLOOR_Y;
+function lowestFitInColumn(cx, w, bh, self){   // encaixe mais BAIXO que caiba nesta coluna: chão primeiro, senão apoiado no topo da peça de baixo — só sobe se não houver espaço embaixo
+  const l = cx-w/2, r = cx+w/2;
+  const surfaces = [FLOOR_Y];                  // apoios candidatos: chão + topo de cada peça que cruza a faixa
   for(const o of pieces){
     if(o===self || o.plugin.dead || !o.plugin.snapped) continue;
-    if(xOverlap(cx-w/2, cx+w/2, o.bounds.min.x, o.bounds.max.x) >= 8) top = Math.min(top, o.bounds.min.y);
+    if(xOverlap(l, r, o.bounds.min.x, o.bounds.max.x) >= 8) surfaces.push(o.bounds.min.y);
   }
-  return top;
+  surfaces.sort((a,b)=>b-a);                   // do mais baixo (maior y) ao mais alto
+  for(const sy of surfaces){
+    const ny = sy - bh/2;
+    if(fits(self, cx, ny, w, bh)) return ny;   // 1ª vaga (a mais baixa) que caiba; o topo da coluna sempre cabe → nunca retorna null na prática
+  }
+  return null;
 }
-function nearestFit(tier, fromX, self, maxDist){   // coluna que comporta a peça descansando, mais próxima de fromX (dentro de maxDist)
+function nearestFit(tier, fromX, self, maxDist){   // coluna com o encaixe mais BAIXO disponível, mais próxima de fromX (dentro de maxDist)
   const p = PIECES[tier], bh = p.h-STUD;
   let best = null, bestD = 1e9;
   const kMax = (INNER_W-p.w)/GRID;
   for(let k=0;k<=kMax;k++){
     const cx = INNER_L + p.w/2 + k*GRID;
     if(maxDist!=null && Math.abs(cx-fromX) > maxDist) continue;   // nada de vaga longe (evita teleporte)
-    const ny = columnTop(cx, p.w, self) - bh/2;
-    if(fits(self, cx, ny, p.w, bh)){ const d = Math.abs(cx-fromX); if(d<bestD){ bestD=d; best={cx,ny}; } }
+    const ny = lowestFitInColumn(cx, p.w, bh, self);
+    if(ny!=null){ const d = Math.abs(cx-fromX); if(d<bestD){ bestD=d; best={cx,ny}; } }
   }
   return best;
 }
