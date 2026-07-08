@@ -32,13 +32,33 @@ const PIECES = [null,
 ];
 const CONFETTI = ['#FF5859','#FFCC2F','#1695ED','#56C46D','#ECECEC','#FFB733'];
 
-/* ---------- Pontos de integração CrazyGames ---------- */
+/* ---------- Integração CrazyGames ---------- */
+const CG = ()=> window.CrazyGames?.SDK;
 const SDK = {
-  gameplayStart(){ /* window.CrazyGames?.SDK.game.gameplayStart() */ },
-  gameplayStop(){  /* window.CrazyGames?.SDK.game.gameplayStop() */ },
-  happytime(){     /* window.CrazyGames?.SDK.game.happytime() */ },
-  midgame(cb){ fakeAd('interstitial', cb); },
-  rewarded(cb){ fakeAd('rewarded', cb); }
+  init(){
+    try { CG()?.init(); } catch(e) {}
+  },
+  gameplayStart(){
+    try { CG()?.game?.gameplayStart(); } catch(e) {}
+  },
+  gameplayStop(){
+    try { CG()?.game?.gameplayStop(); } catch(e) {}
+  },
+  happytime(){
+    try { CG()?.game?.happytime(); } catch(e) {}
+  },
+  midgame(cb){
+    // TODO: trocar por ad real quando aprovarem monetização
+    // if(!CG()){ cb?.(); return; }
+    // CG().ad?.requestAd('midgame', { callbacks: { adFinished: ()=> cb?.(), adError: ()=> cb?.() } });
+    cb?.();
+  },
+  rewarded(cb){
+    // TODO: trocar por ad real quando aprovarem monetização
+    // if(!CG()){ cb?.(); return; }
+    // CG().ad?.requestAd('rewarded', { callbacks: { adFinished: ()=> cb?.(), adError: ()=> cb?.() } });
+    cb?.();
+  }
 };
 
 /* ---------- Assets ---------- */
@@ -835,25 +855,6 @@ function hideOverlay(){
   setTimeout(()=>{ overlay.style.display='none'; overlay.classList.remove('hiding'); }, 350);
 }
 
-function fakeAd(kind, cb){
-  const prev = state; state = 'ad';
-  let n = 2;
-  overlay.innerHTML =
-    '<div class="pause-wrap">'+
-      '<div class="pause-card">'+
-        '<h1>anúncio</h1>'+
-        '<div class="go-sub">('+kind+' — SDK CrazyGames)</div>'+
-        '<div class="go-score" id="adCount">'+n+'</div>'+
-      '</div>'+
-    '</div>';
-  overlay.classList.remove('hiding');
-  overlay.style.display='flex';
-  const iv = setInterval(()=>{
-    n--;
-    if(n<=0){ clearInterval(iv); hideOverlay(); state = (prev==='ad')?'play':prev; cb && cb(); }
-    else $('adCount').textContent = n;
-  }, 1000);
-}
 function doContinue(){
   if(!continueUsed && charsCollected >= 5 && state==='over'){
     charsCollected -= 5;
@@ -871,7 +872,7 @@ function doContinue(){
       }
       if(!placed) layers.push([b]);
     }
-    const toRemove = layers.slice(0, 3).flat();
+    const toRemove = layers.slice(0, 5).flat();
     for(const b of toRemove){
       const p = PIECES[b.plugin.tier];
       burst(b.position.x, b.position.y, p.color, 18);
@@ -1017,7 +1018,7 @@ document.addEventListener('pointerdown', e=>{   // clique em qualquer botão do 
 $('pauseBtn').addEventListener('click', ()=>{ if(state==='paused') resume(); else pause(); });
 $('shakeBtn').addEventListener('click', ()=>{
   if(usedShake || state!=='play') return;
-  SDK.rewarded(()=>{ shake(); usedShake=true; });
+  shake(); usedShake = true;
 });
 function shake(){
   for(const b of pieces){
@@ -1625,6 +1626,7 @@ function animateInitialBoard(){
 }
 
 /* ---------- Boot ---------- */
+SDK.init();
 loadImages().then(()=>{
   // Esconde o loader com fade-out
   const loader = document.getElementById('loader');
