@@ -33,8 +33,48 @@ const PIECES = [null,
 const CONFETTI = ['#FF5859','#FFCC2F','#1695ED','#56C46D','#ECECEC','#FFB733'];
 
 
+/* ---------- Storage (CrazyGames cloud → localStorage fallback) ---------- */
+const ST = {
+  _prefix: 'toydrop_',
+  _loading: true,
+  _queue: [],
+  async _init(){
+    try {
+      if(window.CrazyGames?.SDK?.data?.get){
+        // Carrega dados salvos na nuvem CrazyGames
+        const keys = ['best','chars','gems','bestLevel','lang','mute','musicMute'];
+        const vals = await window.CrazyGames.SDK.data.get(keys);
+        for(const k of keys){
+          if(vals[k] !== undefined && vals[k] !== null){
+            localStorage.setItem(this._prefix+k, vals[k]);
+          }
+        }
+      }
+    } catch(e) {}
+    this._loading = false;
+    for(const fn of this._queue) fn();
+    this._queue = [];
+  },
+  get(key){
+    const raw = localStorage.getItem(this._prefix+key);
+    if(raw === null) return null;
+    return raw;
+  },
+  set(key, val){
+    localStorage.setItem(this._prefix+key, String(val));
+    this._sync(key, val);
+  },
+  _sync(key, val){
+    if(this._loading){ this._queue.push(()=>this._sync(key,val)); return; }
+    try {
+      window.CrazyGames?.SDK?.data?.set({ [key]: val });
+    } catch(e) {}
+  }
+};
+ST._init();
+
 /* ---------- Tradução EN/PT ---------- */
-let lang = localStorage.getItem('toydrop_lang') || '';
+let lang = ST.get('lang') || '';
 function detectLang(){
   if(!lang){
     try {
@@ -47,7 +87,7 @@ function detectLang(){
 detectLang();
 function toggleLang(){
   lang = (lang==='pt') ? 'en' : 'pt';
-  localStorage.setItem('toydrop_lang', lang);
+  ST.set('lang', lang);
   // Atualiza o toggle imediatamente
   const p = document.getElementById('langPt');
   const e = document.getElementById('langEn');
@@ -155,8 +195,8 @@ function loadImages(){
 }
 
 /* ---------- Áudio ---------- */
-let AC = null, muted = localStorage.getItem('toydrop_mute')==='1';
-let musicMuted = localStorage.getItem('toydrop_musicMute')==='1';
+let AC = null, muted = ST.get('mute')==='1';
+let musicMuted = ST.get('musicMute')==='1';
 
 /* ---------- BGM (Web Audio API — crossfade loop sem corte) ---------- */
 let bgmBuffer = null, _bgmLoading = null, _bgmNodes = [], _bgmTimer = null;
@@ -268,10 +308,10 @@ let state = 'idle';   // 'idle' → tela inicial, 'play' → jogando
 let pieces = [];
 let cur = null, queue = [], stash = null, holdUsed = false;
 let heldX = W/2, heldDrawX = W/2, heldSince = 0, nextAt = 0, drops = 0;
-let score = 0, best = +(localStorage.getItem('toydrop_best')||0);
-let gems = +(localStorage.getItem('toydrop_gems')||0);
-let charsCollected = +(localStorage.getItem('toydrop_chars')||0);   // peças especiais acumuladas (tier-7 merges)
-let bestLevel = +(localStorage.getItem('toydrop_bestLevel')||1);    // maior nível alcançado
+let score = 0, best = +(ST.get('best')||0);
+let gems = +(ST.get('gems')||0);
+let charsCollected = +(ST.get('chars')||0);   // peças especiais acumuladas (tier-7 merges)
+let bestLevel = +(ST.get('bestLevel')||1);    // maior nível alcançado
 let continueUsed = false;   // já usou o continue nesta partida?
 let level = 1;              // nível atual (incrementa a cada tabuleiro limpo)
 let combo = 0, lastMergeAt = -9e9;
@@ -716,7 +756,7 @@ function addScore(pts, x, y){
   score += pts; syncScore();
   spawnPopText({x, y:y-20, text:'+'+pts, kind:'score', size:22, color:'#FFFFFF',
     vx:(Math.random()-.5)*9, vy:-6 - Math.random()*3});
-  if(score>best){ best=score; localStorage.setItem('toydrop_best', best); }
+  if(score>best){ best=score; ST.set('best', best); }
 }
 function spawnPopText(o){   // texto que explode no ponto da ação, cai e quica nas peças/chão do painel
   popups.push(Object.assign({life:1.3, bounces:0, rot:(Math.random()-.5)*.2,
@@ -748,8 +788,8 @@ function celebrate(x,y){
   for(let i=0;i<100;i++) burstFx(x+(Math.random()-.5)*120, y+(Math.random()-.5)*50, CONFETTI[i%6], 1);
   discovered[MAX_TIER] = true;
   gems += 50; charsCollected++;
-  localStorage.setItem('toydrop_gems', gems);
-  localStorage.setItem('toydrop_chars', charsCollected);
+  ST.set('gems', gems);
+  ST.set('chars', charsCollected);
   syncScore();
   camShake = Math.max(camShake, 8);
   targetTS = .42;
@@ -767,10 +807,10 @@ function checkGoal(){
   if(left !== goalLeft){ goalLeft = left; syncGoal(); }
   if(goalLeft === 0 && goalTotal > 0){
     goalDone = true;
-    gems += 50; localStorage.setItem('toydrop_gems', gems);
+    gems += 50; ST.set('gems', gems);
     const bonus = Math.max(100, Math.round(score * 0.2));  // bônus de 20% do score, mín 100
     score += bonus; _lastGoalBonus = bonus;
-    if(score>best){ best=score; localStorage.setItem('toydrop_best', best); }
+    if(score>best){ best=score; ST.set('best', best); }
     syncScore();
     const now = performance.now();
     goalCelebUntil = now + 5000;   // 5 segundos de comemoração
@@ -795,7 +835,7 @@ function nextBoard(){   // novo castelo de peças marcadas — score e gemas fic
   for(const b of [...pieces]) removeBody(b);
   pendingMerges = [];
   level++;
-  if(level > bestLevel){ bestLevel = level; localStorage.setItem('toydrop_bestLevel', bestLevel); }
+  if(level > bestLevel){ bestLevel = level; ST.set('bestLevel', bestLevel); }
   if($('lvlNum')) $('lvlNum').textContent = level;
   setupInitialBoard();
   animateInitialBoard();
@@ -939,7 +979,7 @@ function hideOverlay(){
 function doContinue(){
   if(!continueUsed && charsCollected >= 5 && state==='over'){
     charsCollected -= 5;
-    localStorage.setItem('toydrop_chars', charsCollected);
+    ST.set('chars', charsCollected);
     syncScore();
 
     // Remove as 3 camadas do topo da pilha
@@ -1026,13 +1066,13 @@ function pause(){
   overlay.style.display='flex';
   $('resumeBtn').addEventListener('click', resume);
   $('muteSfxBtn').addEventListener('click', ()=>{
-    muted=!muted; localStorage.setItem('toydrop_mute', muted?'1':'0');
+    muted=!muted; ST.set('mute', muted?'1':'0');
     const label = muted ? T('sfxOff') : T('sfxOn');
     const icon = muted ? 'ico-speaker-mute' : 'ico-speaker';
     $('muteSfxBtn').innerHTML = '<svg class="ico-svg"><use href="#'+icon+'"/></svg> '+label;
   });
   $('muteMusicBtn').addEventListener('click', ()=>{
-    musicMuted=!musicMuted; localStorage.setItem('toydrop_musicMute', musicMuted?'1':'0');
+    musicMuted=!musicMuted; ST.set('musicMute', musicMuted?'1':'0');
     const label = musicMuted ? T('musicOff') : T('musicOn');
     $('muteMusicBtn').innerHTML = '<svg class="ico-svg"><use href="#ico-music"/></svg> '+label;
     if(musicMuted) stopBgm();
