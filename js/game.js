@@ -40,11 +40,15 @@ const ST = {
   _queue: [],
   async _init(){
     try {
-      const sdkData = window.CrazyGames?.SDK?.data;
+      const cg = window.CrazyGames;
+      if(!cg){ console.log('[ST] CrazyGames SDK not found, using localStorage'); }
+      const sdkData = cg?.SDK?.data;
+      if(!sdkData?.get){ console.log('[ST] SDK.data.get not available'); }
       if(sdkData?.get){
         const keys = ['best','chars','gems','bestLevel','lang','mute','musicMute'];
-        // SDK.data.get(keys[]) → {key: value, ...}
+        console.log('[ST] Fetching cloud save...');
         const cloud = await sdkData.get(keys);
+        console.log('[ST] Cloud response:', cloud);
         if(cloud){
           for(const k of keys){
             if(cloud[k] !== undefined && cloud[k] !== null){
@@ -53,7 +57,7 @@ const ST = {
           }
         }
       }
-    } catch(e) {}
+    } catch(e) { console.warn('[ST] Error:', e.message || e); }
     this._loading = false;
     for(const fn of this._queue) fn();
     this._queue = [];
