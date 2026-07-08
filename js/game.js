@@ -157,7 +157,14 @@ function syncHTML(){
 const CG = ()=> window.CrazyGames?.SDK;
 const SDK = {
   init(){
-    try { CG()?.init(); } catch(e) {}
+    try {
+      CG()?.init();
+      // Hooks de áudio/foco — pausa/retoma quando ads tocam ou perde foco
+      CG()?.game?.onPause?.(()=>{ if(state==='play' && !goalDone) pause(); });
+      CG()?.game?.onResume?.(()=>{ if(state==='paused') resume(); });
+      // Evento separado para quando um ad começa — garante áudio pausado
+      CG()?.onAdStarted?.(()=>{ if(state==='play' && !goalDone) pause(); });
+    } catch(e) {}
   },
   gameplayStart(){
     try { CG()?.game?.gameplayStart(); } catch(e) {}
