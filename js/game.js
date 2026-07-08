@@ -165,6 +165,7 @@ let score = 0, best = +(localStorage.getItem('toydrop_best')||0);
 let gems = +(localStorage.getItem('toydrop_gems')||0);
 let charsCollected = +(localStorage.getItem('toydrop_chars')||0);   // peças especiais acumuladas (tier-7 merges)
 let continueUsed = false;   // já usou o continue nesta partida?
+let level = 1;              // nível atual (incrementa a cada tabuleiro limpo)
 let combo = 0, lastMergeAt = -9e9;
 let discovered = [true,true,false,false,false,false,false,false];
 let goalTotal = 0, goalLeft = 0, goalDone = false;   // objetivo: mesclar todas as peças marcadas do castelo
@@ -676,6 +677,8 @@ function checkGoal(){
 function nextBoard(){   // novo castelo de peças marcadas — score e gemas ficam
   for(const b of [...pieces]) removeBody(b);
   pendingMerges = [];
+  level++;
+  if($('lvlNum')) $('lvlNum').textContent = level;
   setupInitialBoard();
   animateInitialBoard();
   resetGoal();
@@ -977,7 +980,8 @@ function showWinOverlay(){
 function restart(){
   for(const b of [...pieces]) removeBody(b);
   particles=[]; popups=[]; chars=[]; rings=[]; fxConf=[]; pendingMerges=[];
-  score=0; _prevScore=0; combo=0; drops=0; dangerT=0; continueUsed=false; usedShake=false; camShake=0; targetTS=1; timeScale=1; gameClock=0; goalCelebUntil=0;
+  score=0; _prevScore=0; combo=0; drops=0; dangerT=0; continueUsed=false; level=1; usedShake=false; camShake=0; targetTS=1; timeScale=1; gameClock=0; goalCelebUntil=0;
+  if($('lvlNum')) $('lvlNum').textContent = '1';
   if(winDismissTimer){ clearTimeout(winDismissTimer); winDismissTimer = null; }
   stash=null; holdUsed=false;
   discovered = [true,true,false,false,false,false,false,false];
@@ -1214,6 +1218,7 @@ ctx.clip();
     ctx.globalAlpha = 1;
     ctx.restore();
   }
+
   ctx.restore();
   ctx.restore();
 }
