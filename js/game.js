@@ -533,9 +533,11 @@ function doMerge(a,b){
   const mult = Math.min(1+(combo-1)*.5, 4);
   // Peças iniciais (marcadas) valem 100%; spawnadas valem 50% — incentiva focar no objetivo
   const scoreMul = (a.plugin.initial || b.plugin.initial) ? 1 : 0.5;
+  // Pontos caem conforme o objetivo diminui — pressiona a limpar o tabuleiro
+  const goalMul = goalTotal > 0 ? 0.2 + 0.8 * (goalLeft / goalTotal) : 1;
 
   if(t === MAX_TIER){
-    addScore(Math.round(CELEBRATE_PTS*mult*scoreMul), mx, my);
+    addScore(Math.round(CELEBRATE_PTS*mult*scoreMul*goalMul), mx, my);
     celebrate(mx, my);
   } else {
     const nt = t+1, np = PIECES[nt], nbh = np.h-STUD;
@@ -561,7 +563,7 @@ function doMerge(a,b){
     Body.setVelocity(nb, {x:0, y:-1.5});
     setTimeout(() => { if(!nb.plugin.dead) popRoom(nb); }, NEXT_DELAY);
     discovered[nt] = true;
-    addScore(Math.round(PIECES[nt].pts*mult*scoreMul), mx, my);
+    addScore(Math.round(PIECES[nt].pts*mult*scoreMul*goalMul), mx, my);
     burst(mx, my, PIECES[nt].color, 16);
     camShake = Math.max(camShake, 3);
     sMerge(nt);
