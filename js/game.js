@@ -815,7 +815,6 @@ window.addEventListener('keydown', e=>{
   if(state!=='play') return;
   if(e.key==='ArrowLeft')  setHeldX(heldX-GRID);
   if(e.key==='ArrowRight') setHeldX(heldX+GRID);
-  if(e.key==='Shift' || e.key.toLowerCase()==='c'){ e.preventDefault(); doHold(); }
   if(e.key===' '||e.key==='Enter'){ e.preventDefault(); if(cur) dropCur(); }
 });
 function dropCur(){
@@ -921,7 +920,7 @@ function doGameOver(){
   $('againBtn').addEventListener('click', ()=>{ SDK.midgame(restart); });
 }
 function pause(){
-  if(state!=='play') return;
+  if(state!=='play' || goalDone) return;  // não pausa durante celebração de vitória
   state = 'paused';
   setPauseIcon('ico-play');
   const sndLabel = muted ? 'Efeitos Desl.' : 'Efeitos Lig.';
@@ -1010,7 +1009,7 @@ function restart(){
   hideOverlay(); state = 'play'; setPauseIcon('ico-pause'); SDK.gameplayStart();
   animateInitialBoard();
 }
-document.addEventListener('visibilitychange', ()=>{ if(document.hidden) pause(); });
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden && !goalDone) pause(); });
 
 document.addEventListener('pointerdown', e=>{   // clique em qualquer botão do layout
   if(e.target.closest('button')){ audioInit(); sfx(aBtn); }
