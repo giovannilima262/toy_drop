@@ -1056,8 +1056,8 @@ function drawBase(){   // base de terra: blocos dirt_top alinhados ao grid
     ctx.drawImage(IMGS.dirt_top, lx, topY-10, 66, 66);
 }
 
-function drawSpark(c, x, y, s, a){   // estrelinha de 4 pontas (brilho do plástico)
-  c.save(); c.translate(x, y); c.globalAlpha = a; c.fillStyle = '#FFFFFF';
+function drawSpark(c, x, y, s, a, color){   // estrelinha de 4 pontas
+  c.save(); c.translate(x, y); c.globalAlpha = a; c.fillStyle = color || '#FFFFFF';
   c.beginPath(); c.moveTo(0,-s);
   c.quadraticCurveTo(s*.18,-s*.18, s,0); c.quadraticCurveTo(s*.18,s*.18, 0,s);
   c.quadraticCurveTo(-s*.18,s*.18, -s,0); c.quadraticCurveTo(-s*.18,-s*.18, 0,-s);
@@ -1129,7 +1129,10 @@ function drawPiece(b, now){
     ctx.lineWidth = .9; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.stroke();   // fio de luz
     const tw = .5+.5*Math.sin(now/650 + b.position.x*.13 + b.position.y*.09);   // cintila defasado por peça
     const ss = Math.min(6, bh*.32);
-    drawSpark(ctx, p.w/2 - ss - 2.5, -bh + ss + 2.5, ss*(.6+.5*tw), .3+.65*tw);
+    // Peça branca (tier 5): dourado forte p/ contrastar; outras: branco ↔ dourado suave
+    const sparkColor = b.plugin.tier === 5 ? '#FFD54A' :
+      'rgb(255,'+Math.round(255-16*(tw*tw*(3-2*tw)))+','+Math.round(255-70*(tw*tw*(3-2*tw)))+')';
+    drawSpark(ctx, p.w/2 - ss - 2.5, -bh + ss + 2.5, ss*(.6+.5*tw), .3+.65*tw, sparkColor);
   }
   ctx.restore();
 }
