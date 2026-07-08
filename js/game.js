@@ -74,8 +74,25 @@ const ST = {
     this._sync(key, s);
   },
   _sync(key, val){
-    if(this._loading){ this._queue.push(()=>this._sync(key,val)); return; }
-    try { window.CrazyGames?.SDK?.data?.set({ [key]: val }); } catch(e) {}
+    // Salvamento individual mantido no localStorage; sync em nuvem é feito via saveAll()
+  },
+  saveAll(){
+    // Chamada explícita nos momentos chave — o painel CrazyGames detecta
+    try {
+      const sdk = window.CrazyGames?.SDK?.data;
+      if(sdk?.set){
+        sdk.set({
+          best: String(best),
+          chars: String(charsCollected),
+          gems: String(gems),
+          bestLevel: String(bestLevel),
+          lang: lang,
+          mute: muted?'1':'0',
+          musicMute: musicMuted?'1':'0'
+        });
+        console.log('[ST] Cloud save OK — best:', best, 'chars:', charsCollected, 'level:', bestLevel);
+      }
+    } catch(e) { console.warn('[ST] Cloud save failed:', e.message); }
   }
 };
 
@@ -94,6 +111,7 @@ detectLang();
 function toggleLang(){
   lang = (lang==='pt') ? 'en' : 'pt';
   ST.set('lang', lang);
+  ST.saveAll();
   // Atualiza o toggle imediatamente
   const p = document.getElementById('langPt');
   const e = document.getElementById('langEn');
@@ -778,7 +796,7 @@ function addScore(pts, x, y){
   score += pts; syncScore();
   spawnPopText({x, y:y-20, text:'+'+pts, kind:'score', size:22, color:'#FFFFFF',
     vx:(Math.random()-.5)*9, vy:-6 - Math.random()*3});
-  if(score>best){ best=score; ST.set('best', best); }
+  if(score>best){ best=score; ST.set('best', best); ST.saveAll(); }
 }
 function spawnPopText(o){   // texto que explode no ponto da ação, cai e quica nas peças/chão do painel
   popups.push(Object.assign({life:1.3, bounces:0, rot:(Math.random()-.5)*.2,
@@ -810,8 +828,8 @@ function celebrate(x,y){
   for(let i=0;i<100;i++) burstFx(x+(Math.random()-.5)*120, y+(Math.random()-.5)*50, CONFETTI[i%6], 1);
   discovered[MAX_TIER] = true;
   gems += 50; charsCollected++;
-  ST.set('gems', gems);
-  ST.set('chars', charsCollected);
+  ST.set('gems', gems); ST.saveAll();
+  ST.set('chars', charsCollected); ST.saveAll();
   syncScore();
   camShake = Math.max(camShake, 8);
   targetTS = .42;
@@ -829,10 +847,10 @@ function checkGoal(){
   if(left !== goalLeft){ goalLeft = left; syncGoal(); }
   if(goalLeft === 0 && goalTotal > 0){
     goalDone = true;
-    gems += 50; ST.set('gems', gems);
+    gems += 50; ST.set('gems', gems); ST.saveAll();
     const bonus = Math.max(100, Math.round(score * 0.2));  // bônus de 20% do score, mín 100
     score += bonus; _lastGoalBonus = bonus;
-    if(score>best){ best=score; ST.set('best', best); }
+    if(score>best){ best=score; ST.set('best', best); ST.saveAll(); }
     syncScore();
     const now = performance.now();
     goalCelebUntil = now + 5000;   // 5 segundos de comemoração
@@ -857,7 +875,7 @@ function nextBoard(){   // novo castelo de peças marcadas — score e gemas fic
   for(const b of [...pieces]) removeBody(b);
   pendingMerges = [];
   level++;
-  if(level > bestLevel){ bestLevel = level; ST.set('bestLevel', bestLevel); }
+  if(level > bestLevel){ bestLevel = level; ST.set('bestLevel', bestLevel); ST.saveAll(); }
   if($('lvlNum')) $('lvlNum').textContent = level;
   setupInitialBoard();
   animateInitialBoard();
@@ -1001,7 +1019,7 @@ function hideOverlay(){
 function doContinue(){
   if(!continueUsed && charsCollected >= 5 && state==='over'){
     charsCollected -= 5;
-    ST.set('chars', charsCollected);
+    ST.set('chars', charsCollected); ST.saveAll();
     syncScore();
 
     // Remove as 3 camadas do topo da pilha
@@ -1037,7 +1055,7 @@ function doGameOver(){
   if(state!=='play') return;
   TD.lastOver = {score, dangerT:Math.round(dangerT), charsCollected,
     pecas: pieces.map(b=>({t:b.plugin.tier, x:Math.round(b.position.x), y:Math.round(b.position.y), minY:Math.round(b.bounds.min.y), snap:!!b.plugin.snapped}))};
-  state = 'over'; SDK.gameplayStop(); sOver(); camShake = 6;
+  state = 'over'; ST.saveAll(); SDK.gameplayStop(); sOver(); camShake = 6;
   const rec = score>=best && score>0;
   const canContinue = !continueUsed && charsCollected >= 5;
   const chars = ['a','b','c','d'];
@@ -1088,13 +1106,13 @@ function pause(){
   overlay.style.display='flex';
   $('resumeBtn').addEventListener('click', resume);
   $('muteSfxBtn').addEventListener('click', ()=>{
-    muted=!muted; ST.set('mute', muted?'1':'0');
+    muted=!muted; ST.set('mute', muted?'1':'0'); ST.saveAll();
     const label = muted ? T('sfxOff') : T('sfxOn');
     const icon = muted ? 'ico-speaker-mute' : 'ico-speaker';
     $('muteSfxBtn').innerHTML = '<svg class="ico-svg"><use href="#'+icon+'"/></svg> '+label;
   });
   $('muteMusicBtn').addEventListener('click', ()=>{
-    musicMuted=!musicMuted; ST.set('musicMute', musicMuted?'1':'0');
+    musicMuted=!musicMuted; ST.set('musicMute', musicMuted?'1':'0'); ST.saveAll();
     const label = musicMuted ? T('musicOff') : T('musicOn');
     $('muteMusicBtn').innerHTML = '<svg class="ico-svg"><use href="#ico-music"/></svg> '+label;
     if(musicMuted) stopBgm();
