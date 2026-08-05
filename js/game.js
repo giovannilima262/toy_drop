@@ -177,34 +177,41 @@ function syncHTML(){
   if(langEn) langEn.classList.toggle('active', lang==='en');
 }
 
-/* ---------- Integração CrazyGames ---------- */
+/* ---------- Integração CrazyGames + Poki ---------- */
 const CG = ()=> window.CrazyGames?.SDK;
+const PK = ()=> window.PokiSDK;
 const SDK = {
   init(){
-    try {
-      CG()?.init();
-      ST._init();  // carrega progresso salvo na nuvem CrazyGames
-    } catch(e) {}
+    try { CG()?.init(); } catch(e) {}
+    try { PK()?.init().catch(()=>{ console.log('[SDK] Poki init falhou, seguindo mesmo assim'); }); } catch(e) {}
+    ST._init();  // carrega progresso salvo na nuvem CrazyGames (Poki não tem cloud save no SDK)
+  },
+  loadingFinished(){
+    try { PK()?.gameLoadingFinished(); } catch(e) {}
   },
   gameplayStart(){
     try { CG()?.game?.gameplayStart(); } catch(e) {}
+    try { PK()?.gameplayStart(); } catch(e) {}
   },
   gameplayStop(){
     try { CG()?.game?.gameplayStop(); } catch(e) {}
+    try { PK()?.gameplayStop(); } catch(e) {}
   },
   happytime(){
     try { CG()?.game?.happytime(); } catch(e) {}
   },
   midgame(cb){
     // TODO: trocar por ad real quando aprovarem monetização
-    // if(!CG()){ cb?.(); return; }
-    // CG().ad?.requestAd('midgame', { callbacks: { adFinished: ()=> cb?.(), adError: ()=> cb?.() } });
+    // if(!CG() && !PK()){ cb?.(); return; }
+    // if(CG()) CG().ad?.requestAd('midgame', { callbacks: { adFinished: ()=> cb?.(), adError: ()=> cb?.() } });
+    // else if(PK()) PK().commercialBreak(()=> stopBgm()).then(()=>{ startBgm(); cb?.(); });
     cb?.();
   },
   rewarded(cb){
     // TODO: trocar por ad real quando aprovarem monetização
-    // if(!CG()){ cb?.(); return; }
-    // CG().ad?.requestAd('rewarded', { callbacks: { adFinished: ()=> cb?.(), adError: ()=> cb?.() } });
+    // if(!CG() && !PK()){ cb?.(); return; }
+    // if(CG()) CG().ad?.requestAd('rewarded', { callbacks: { adFinished: ()=> cb?.(), adError: ()=> cb?.() } });
+    // else if(PK()) PK().rewardedBreak({ size:'medium', onStart:()=> stopBgm() }).then(success=>{ startBgm(); if(success) cb?.(); });
     cb?.();
   }
 };
@@ -1768,6 +1775,7 @@ loadImages().then(()=>{
   // Esconde o loader com fade-out
   const loader = document.getElementById('loader');
   if(loader){ loader.classList.add('hiding'); setTimeout(()=>loader.remove(), 500); }
+  SDK.loadingFinished();
   fit();
   queue = []; refillQueue(); newCurrent(); heldDrawX = heldX;
   syncScore();
